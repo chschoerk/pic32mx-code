@@ -6,7 +6,7 @@
 #include "switching.h"
 
 
-void setupSMBus()
+void setupSMBus(int pbclockfreq)
 {
     unsigned int i2c_address;
     int i2c_data;

@@ -5,4 +5,5 @@ si5326.h  \
 configandmux.h  \
 timestamping.h  \
 switching.h  \
- _TxModuleMain.h 
+ smbus.h  \
+_TxModuleMain.h 

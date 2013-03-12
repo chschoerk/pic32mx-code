@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-void setupSMBus();
+void setupSMBus(int pbclockfreq);
 
 
 #ifdef	__cplusplus

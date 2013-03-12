@@ -135,5 +135,5 @@ void SPI2_configI2S(void)
     spi_con2 =     SPI_OPEN2_AUDEN     ;
 
 
-    SpiChnOpenEx(SPI_CHANNEL1,spi_con1, spi_con2, 8);
+    SpiChnOpenEx(SPI_CHANNEL2,spi_con1, spi_con2, 8);
 }

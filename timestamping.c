@@ -107,7 +107,7 @@ void __ISR(_DMA2_VECTOR, ipl5) DmaHandler2(void)
 }
 
 
-int startDMA1_TxBuffToSpi1(void)
+int startDMA1_TxBuffToSpi2(void)
 {
 	DmaChannel		dmaTxChn=DMA_CHANNEL1;	// DMA channel to use for our example
 							// NOTE: the DMA ISR setting has to match the channel number
@@ -126,13 +126,13 @@ int startDMA1_TxBuffToSpi1(void)
         DmaChnOpen(dmaTxChn, DMA_CHN_PRI2, DMA_OPEN_AUTO);
 
 	// set the events: we want the SPI transmit buffer empty interrupt to start our transfer
-	DmaChnSetEventControl(dmaTxChn, DMA_EV_START_IRQ_EN|DMA_EV_START_IRQ(_SPI1_TX_IRQ));
+	DmaChnSetEventControl(dmaTxChn, DMA_EV_START_IRQ_EN|DMA_EV_START_IRQ(_SPI2_TX_IRQ));
 
 	// set the transfer:
 	// source is our buffer, dest is the SPI transmit buffer
 	// source size is the whole buffer, destination size is one byte
 	// cell size is one byte: we want one byte to be sent per each SPI TXBE event
-	DmaChnSetTxfer(dmaTxChn, txferTxBuff, (void*)&SPI1BUF, sizeof(txferTxBuff), 4, 4);
+	DmaChnSetTxfer(dmaTxChn, txferTxBuff, (void*)&SPI2BUF, sizeof(txferTxBuff), 4, 4);
 
 	//DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_BLOCK_DONE);
         DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_BLOCK_DONE | DMA_EV_SRC_HALF);	// enable the transfer done interrupt, when all buffer transferred
@@ -146,7 +146,7 @@ int startDMA1_TxBuffToSpi1(void)
 	INTEnable(INT_SOURCE_DMA(dmaTxChn), INT_ENABLED);		// enable the chn interrupt in the INT controller
 
         
-	//DmaChnStartTxfer(dmaTxChn, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
+	DmaChnStartTxfer(dmaTxChn, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
         
 	return 1;
 }

@@ -15,6 +15,7 @@
 #include "configandmux.h"
 #include "timestamping.h"
 #include "switching.h"
+#include "smbus.h"
 #include "_TxModuleMain.h"
 
 
@@ -124,18 +125,30 @@ int main(void) {
     //SYSTEMConfigWaitStatesAndPB()
     DDPCONbits.JTAGEN = 0; //disable JTAG
 
-    /*configure phase 1*/
+
+    /*configure phase 1---------------------------------------------------*/
     SwitchOffSport();
     pinMux01();
     mPORTCClearBits(BIT_0); //set CLK_alt low (start off with low clock)
     SPI1_configMaster();
     SwitchADFSpi2Spi1();
 
-    //setupSMBus();
+    /*timestamping--------------------------------------------------------*/
+    SPI2_configI2S();
+    TS_initBuffers();
+    startDMA1_TxBuffToSpi2();
 
-    /*set up ADF7023*/
+    while(1);
+
+
+    /*set up SMBus--------------------------------------------------------*/
+    //setupSMBus(pbclockfreq);
+
+
+    /*set up ADF7023------------------------------------------------------*/
     ADF_Init();
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
+
 
     /*set up PWM*/
     //use OutputCompare1 (OC1) on RB3 (PIN24) -> PPS!
@@ -143,36 +156,22 @@ int main(void) {
     OpenTimer2( T2_ON | T2_PS_1_1 | T2_SOURCE_INT, 0xFFFF);
     SetDCOC1PWM(0x7FFF); //50% duty cycle
 
-    /*-----------INTERRUPTS----------------------------------------------*/
+
+    /*set up interrupts----------------------------------------------------*/
     /*config interrupt for TX DONE on IRQ3*/
     INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
-
     INTSetVectorPriority(INT_VECTOR_EX_INT(1), INT_PRIORITY_LEVEL_3); //set INT controller priority
     INTSetVectorSubPriority(INT_VECTOR_EX_INT(1), INT_SUB_PRIORITY_LEVEL_3); //set INT controller sub-priority
     INTCONbits.INT1EP = 1; //edge polarity -> rising edge
     IFS0 &= ~0x0100; //clear interrupt flag
-    IEC0 |= 0x0100; //enable INT1 interrupt
-
-    /*config counter interrupt (TIMER1) (for counting external VCO edges)*/
-    //PORTSetPinsDigitalIn(IOPORT_A, BIT_4);   //T1CK
-    //OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, 0xFFFF); //no prescalor other than 1_1 work's?!
-    //ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
-    
-    /*config counter interrupt (TIMER1) (for counting internal clock edges)*/
+    IEC0 |= 0x0100; //enable INT1 interrupt    
+    /*config counter interrupt (TIMER1) (for counting VCXO clock edges)*/
     OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, 0xFFFF); //no prescalor other than 1_1 work's?!
     ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
-
-    /*set up Timer 3 (generate test-clock)*/
-    /*
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_13);    //PIC_CLK_OUT
-    clkCounter = pbclockfreq / OUT_FREQUENCY;
-    OpenTimer3(T3_ON | T3_SOURCE_INT | T3_PS_1_1, clkCounter); //no prescalor other than 1_1 work's?!
-    ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_2);
-    */
-
     INTEnableInterrupts();
-    /*------------------------------------------------------------------*/
 
+
+    /*DO IT---------------------------------------------------------------*/
     /*ADF: Go to RX state*/
     stallRecover = 0;
     rxDetected = FALSE;
@@ -205,18 +204,13 @@ int main(void) {
                     mn = 0;
                 }
 
-                
-   
                 /*----------------------------------------------*/
-
-
                 /*simple low pass filter*/
                 /*
                 tmpFilt = (filtOut >> FILT_SZ);
                 filtOut -= tmpFilt;
                 filtOut += (counterDiff >> FILT_SZ);
                 */
-
 
                 /*compute counter difference between old value and new value*/
                 if (counterOverflow){
@@ -263,10 +257,7 @@ int main(void) {
                         counterDiff -= thisVal;
                     }
 
-                    
-
-                    /*filter?*/
-                    
+                    /*filter?*/     
                     /*write to PWM register*/
 
                 }else{
@@ -274,7 +265,6 @@ int main(void) {
                     outlier = 0;
                     //keep the same estimated frequency
                 }
-
 
                 //tempYOutputArray[tmpInd] = filtOut - expectedValue;
                 //arr1[tmpInd] = counterDiff;
@@ -290,8 +280,6 @@ int main(void) {
                 
             }
             skippedFirst = 1;
-
-            
 
 
             /*moving average filter
@@ -324,7 +312,6 @@ int main(void) {
                 tmpInd = 0;
             }*/
 
-
             /*reset counters*/
             counterOverflow = 0;
             counterValueOld = counterValue;
@@ -345,8 +332,7 @@ int main(void) {
             /*Bring ADF back to RxState*/
             rxDetected = FALSE;
             bOk = bOk && ADF_GoToRxState();
-            
-            
+                      
         }
     }
 
