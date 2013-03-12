@@ -115,13 +115,6 @@ int main(void) {
     BOOL retBool;
     ADFSTA_Reg ADStat;
 
-    unsigned int i2c_address;
-    int i2c_data;
-    int i2c_rcv1;
-    int i2c_rcv2;
-    unsigned char i2cRcv[2];
-    /**/
-
     counterOverflow = 0;
     counterValue = 0;
     counterValueOld = 0;
@@ -131,8 +124,6 @@ int main(void) {
     //SYSTEMConfigWaitStatesAndPB()
     DDPCONbits.JTAGEN = 0; //disable JTAG
 
-
-
     /*configure phase 1*/
     SwitchOffSport();
     pinMux01();
@@ -140,70 +131,7 @@ int main(void) {
     SPI1_configMaster();
     SwitchADFSpi2Spi1();
 
-
-
-    /*TEST NEW PWM*/
-    OpenOC1( OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE | OC_TIMER_MODE16, 0, 0);
-    OpenTimer2( T2_ON | T2_PS_1_1 | T2_SOURCE_INT, 0xFFFF);
-    SetDCOC1PWM(0x7FFF); //50% duty cycle
-    /**************/
-
-    /*TEST CNTL Pins*/
-    while(1){
-        mPORTBToggleBits(BIT_13);
-        mPORTAToggleBits(BIT_1);
-        mPORTBToggleBits(BIT_6);
-    }
-    /****************/
-
-    /********************************************************/
-    /***********I2C/SMBus************************************/
-
-    //Enable I2C channel and set the baud rate to BRG_VAL)
-    //while(1);
-
-    OpenI2C2( I2C_EN | I2C_SM_EN | I2C_SLW_DIS | I2C_ACK_EN, ((pbclockfreq/2/50000)-2) ); //50000
-
-    i2c_address = 0x16; //charge = 0x12, gauge = 0x16
-
-    IdleI2C2();
-    StartI2C2();	        //Send the Start Bit
-    IdleI2C2();		//Wait to complete
-    MasterWriteI2C2(i2c_address | 0);  //Sends the slave address over the I2C line.  This must happen first so the
-                                             //proper slave is selected to receive data.
-    IdleI2C2();	        //Wait to complete
-    MasterWriteI2C2(0x0d);  //SBS command: reltaveStateOfCharge
-    IdleI2C2();		//Wait to complete
-
-    RestartI2C2();									//Restart signal
-    //while(I2C2CONbits.RSEN ); 						//Wait till Restart sequence is completed
-    //for(i=0;i<1000;i++);
-    IdleI2C2();
-    MasterWriteI2C2(i2c_address | 1);
-    IdleI2C2();
-
-    MastergetsI2C2(2,i2cRcv,1000);
-    //i2c_rcv1 = MasterReadI2C2();		//Read in a value
-    //IdleI2C2();
-    //i2c_rcv2 = MasterReadI2C2();		//Read in a value
-
-    IdleI2C2();
-    StopI2C2();	        //Send the Stop condition
-    IdleI2C2();	        //Wait to complete
-    CloseI2C2();
-
-    /*slave*/
-    /*
-     http://hades.mech.northwestern.edu/index.php/PIC32MX:_I2C_Communication_between_PIC32s
-     */
-
-
-    while(1);
-    /********************************************************/
-
-
-
-
+    //setupSMBus();
 
     /*set up ADF7023*/
     ADF_Init();
@@ -233,7 +161,6 @@ int main(void) {
     /*config counter interrupt (TIMER1) (for counting internal clock edges)*/
     OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, 0xFFFF); //no prescalor other than 1_1 work's?!
     ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
-
 
     /*set up Timer 3 (generate test-clock)*/
     /*
