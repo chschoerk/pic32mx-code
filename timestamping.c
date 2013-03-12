@@ -26,9 +26,15 @@ int TS_initBuffers()
 {
     /*fill transmit buffer with dummy data-----------------------------*/
     int ix;
+    UINT32 val;
     for(ix=0; ix<sizeof(txferTxBuff)/sizeof(*txferTxBuff); ix++)
     {
-        txferTxBuff[ix] = 0xaaaaaaaa; //dummy
+        if (ix%2 == 0)
+            val = 0xffff0000; //dummy
+        else
+            val = 0;
+
+        txferTxBuff[ix] = val;
     }
 
     return 0;
@@ -173,12 +179,14 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
         mx = TXBUFFSZ_HALF;
         while(mx < TXBUFFSZ)
         {
-            txferTxBuff[mx] = 0xaaaaaaaa;
-            //txferTxBuff[mx] = counter;
-            //if (counter < 0xfffffffe){
-            //    counter++;
-            //}
+            txferTxBuff[mx] = 0xffff0000;
+            /*
+            txferTxBuff[mx] = counter;
+            if (counter < 0xfffffffe){
+                counter++;
+            }
             mx++;
+            */
         }
 
     }
@@ -189,12 +197,14 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
         mx = 0;
         while(mx < TXBUFFSZ_HALF)
         {
-            txferTxBuff[mx] = 0xaaaaaaaa;
-            //txferTxBuff[mx] = counter;
-            //if (counter < 0xfffffffe){
-            //    counter++;
-            //}
-            //mx++;
+            txferTxBuff[mx] = 0xffff0000;
+            /*
+            txferTxBuff[mx] = counter;
+            if (counter < 0xfffffffe){
+                counter++;
+            }
+            mx++;
+            */
         }
     }
 

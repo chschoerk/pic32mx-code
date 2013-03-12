@@ -130,7 +130,8 @@ void SPI2_configI2S(void)
     spi_con1 =     SPI_OPEN_FRMEN      |        // Enable the Framed SPI support. Otherwise the Framed SPI is disabled.
                    SPI_OPEN_FSP_IN     |        // Frame Sync Pulse (FSP) direction set to input (Frame Slave).
                    SPI_OPEN_MODE32     |	// Data mode: 24b
-                   SPI_OPEN_SLVEN      ;        // set the Slave mode
+                   SPI_OPEN_SLVEN      |        // set the Slave mode
+                   SPI_OPEN_CKP_HIGH    ;        // reverse bit clock polarity
 
     spi_con2 =     SPI_OPEN2_AUDEN     ;
 
