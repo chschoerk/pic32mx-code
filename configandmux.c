@@ -131,9 +131,10 @@ void SPI2_configI2S(void)
                    SPI_OPEN_FSP_IN     |        // Frame Sync Pulse (FSP) direction set to input (Frame Slave).
                    SPI_OPEN_MODE32     |	// Data mode: 24b
                    SPI_OPEN_SLVEN      |        // set the Slave mode
-                   SPI_OPEN_CKP_HIGH    ;        // reverse bit clock polarity
+                   SPI_OPEN_CKP_HIGH   ;        // bit clock polarity
 
-    spi_con2 =     SPI_OPEN2_AUDEN     ;
+    spi_con2 =     SPI_OPEN2_AUDEN     |
+                   SPI_OPEN2_AUDMONO   ;       // left channel = right channel
 
 
     SpiChnOpenEx(SPI_CHANNEL2,spi_con1, spi_con2, 8);

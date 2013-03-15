@@ -179,14 +179,15 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
         mx = TXBUFFSZ_HALF;
         while(mx < TXBUFFSZ)
         {
-            txferTxBuff[mx] = 0xffff0000;
-            /*
+            //txferTxBuff[mx] = 0xffff0000;
+            
             txferTxBuff[mx] = counter;
-            if (counter < 0xfffffffe){
-                counter++;
-            }
+            counter++;
+            //if (counter < 0xfffffffe){
+            //    counter++;
+            //}
             mx++;
-            */
+            
         }
 
     }
@@ -197,14 +198,15 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
         mx = 0;
         while(mx < TXBUFFSZ_HALF)
         {
-            txferTxBuff[mx] = 0xffff0000;
-            /*
+            //txferTxBuff[mx] = 0xffff0000;
+            
             txferTxBuff[mx] = counter;
-            if (counter < 0xfffffffe){
-                counter++;
-            }
+            counter++;
+            //if (counter < 0xfffffffe){
+            //    counter++;
+            //}
             mx++;
-            */
+            
         }
     }
 
