@@ -4,6 +4,7 @@
 #include <plib.h>
 #include <p32xxxx.h>
 
+#include "configandmux.h"
 #include "timestamping.h"
 
 /*DEFINES---------------------------------------------*/
@@ -21,8 +22,15 @@ static volatile int     RxBufferADone = 0;
 static volatile int     RxBufferBDone = 0;
 
 
+int setupI2S()
+{
+    SPI2_configI2S();
+    initBuffers();
+    startDMA1_TxBuffToSpi2();
+    return 0;
+}
 
-int TS_initBuffers()
+int initBuffers()
 {
     /*fill transmit buffer with dummy data-----------------------------*/
     int ix;
@@ -39,79 +47,6 @@ int TS_initBuffers()
 
     return 0;
 }
-
-
-int startDMA2_Spi1ToRxBuff(void)
-{
-
-	DmaChannel		dmaRxChn=DMA_CHANNEL2;	// DMA channel to use for our example
-							// NOTE: the DMA ISR setting has to match the channel number
-
-	// open and configure the SPI channel to use: slave, no frame mode, 8 bit mode.
-	// won't use SS for communicating with the master
-	// SPI clock is irrelevant in slve mode
-	//SpiChnOpen(spiRxChn, SPI_OPEN_SLVEN|SPI_OPEN_MODE8|SPI_OPEN_CKP_HIGH, 4); //open in enhanced buffer mode?
-
-	// open and configure the DMA channel.
-	DmaChnOpen(dmaRxChn, DMA_CHN_PRI3, DMA_OPEN_AUTO);
-
-	// set the events: we want the SPI receive buffer full interrupt to start our transfer
-	DmaChnSetEventControl(dmaRxChn, DMA_EV_START_IRQ_EN|DMA_EV_START_IRQ(_SPI1_RX_IRQ));
-
-	// set the transfer:
-	// source is the SPI buffer, dest is our memory buffer
-	// source size is one byte, destination size is the whole buffer
-	// cell size is one byte: we want one byte to be sent per each SPI RXBF event
-	DmaChnSetTxfer(dmaRxChn, (void*)&SPI1BUF, txferRxBuff, 1, sizeof(txferRxBuff), 1);
-
-
-        //DmaChnSetEvEnableFlags(dmaRxChn, DMA_EV_CELL_DONE);
-        DmaChnSetEvEnableFlags(dmaRxChn, DMA_EV_BLOCK_DONE|DMA_EV_DST_HALF);	// enable the transfer done interrupt, when all buffer transferred
-
-	//INTEnableSystemMultiVectoredInt();			// enable system wide multi vectored interrupts
-
-	//INTSetVectorPriority(INT_VECTOR_DMA(dmaRxChn), INT_PRIORITY_LEVEL_5);		// set INT controller priority
-
-
-        INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
-
-	INTEnableInterrupts();
-
-	INTSetVectorPriority(INT_VECTOR_DMA(dmaRxChn), INT_PRIORITY_LEVEL_5);		// set INT controller priority
-	INTSetVectorSubPriority(INT_VECTOR_DMA(dmaRxChn), INT_SUB_PRIORITY_LEVEL_3);		// set INT controller sub-priority
-
-	INTEnable(INT_SOURCE_DMA(dmaRxChn), INT_ENABLED);		// enable the chn interrupt in the INT controller
-
-	DmaChnEnable(dmaRxChn);	// enable the DMA channel
-
-	return 1;
-}
-
- 
-
-// handler for the DMA channel 2 interrupt
-void __ISR(_DMA2_VECTOR, ipl5) DmaHandler2(void)
-{
-	int	evFlags;				// event flags when getting the interrupt
-
-	INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL2));	// acknowledge the INT controller, we're servicing int
-
-	evFlags=DmaChnGetEvFlags(DMA_CHANNEL2);	// get the event flags
-
-    if(evFlags&DMA_EV_BLOCK_DONE)
-    {
-        RxBufferBDone = 1;
- 	DmaChnClrEvFlags(DMA_CHANNEL2, DMA_EV_BLOCK_DONE);
-    }
-
-    if(evFlags&DMA_EV_DST_HALF)
-    {
-        RxBufferADone = 1;
-        DmaChnClrEvFlags(DMA_CHANNEL2, DMA_EV_DST_HALF);
-
-    }
-}
-
 
 int startDMA1_TxBuffToSpi2(void)
 {

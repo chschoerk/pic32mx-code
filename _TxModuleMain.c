@@ -126,37 +126,34 @@ int main(void) {
     //SYSTEMConfigWaitStatesAndPB()
     DDPCONbits.JTAGEN = 0; //disable JTAG
 
+
+
     /*---PINMUXING (SWITCHING)-----------------------------------------------------------*/
     SwitchOffSport(); //remove with new HW
     pinMux01();
     SwitchADFSpi2Spi1(); //remove with new HW
     
     SPI1_configMaster(); //TODO: put this inside a function setupADF()
-    
 
-    /*---I2S (TIMESTAMP OUT)-------------------------------------------------------------*/
-    SPI2_configI2S();
 
-    /*timestamping--------------------------------------------------------*/
-    TS_initBuffers();
-    startDMA1_TxBuffToSpi2();
+
+    /*---I2S (TIMESTAMP OUT)---*/
+    setupI2S();
+
+    /*---I2C (SMBus slave)---*/
+    //setupSMBus(pbclockfreq);
+
+    /*---PWM (VCXO CONTROL)---*/
+    setupPWM(); //TODO 32 bit mode
 
     while(1);
 
-    /*set up SMBus--------------------------------------------------------*/
-    //setupSMBus(pbclockfreq);
 
 
     /*set up ADF7023------------------------------------------------------*/
     ADF_Init();
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
 
-
-    /*set up PWM*/
-    //use OutputCompare1 (OC1) on RB3 (PIN24) -> PPS!
-    OpenOC1( OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE | OC_TIMER_MODE16, 0, 0);
-    OpenTimer2( T2_ON | T2_PS_1_1 | T2_SOURCE_INT, 0xFFFF);
-    SetDCOC1PWM(0x7FFF); //50% duty cycle
 
 
     /*set up interrupts----------------------------------------------------*/

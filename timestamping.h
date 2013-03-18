@@ -12,7 +12,9 @@
 extern "C" {
 #endif
 
-int TS_initBuffers();
+
+int setupI2S(void);
+int initBuffers();
 //int startDMA2_Spi1ToRxBuff(void);
 int startDMA1_TxBuffToSpi1(void);
 

@@ -45,11 +45,11 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/adf7023_mint.o ${OBJECTDIR}/configandmux.o ${OBJECTDIR}/si5326.o ${OBJECTDIR}/timestamping.o ${OBJECTDIR}/switching.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/_TxModuleMain.o ${OBJECTDIR}/measuring.o ${OBJECTDIR}/smbus.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/adf7023_mint.o.d ${OBJECTDIR}/configandmux.o.d ${OBJECTDIR}/si5326.o.d ${OBJECTDIR}/timestamping.o.d ${OBJECTDIR}/switching.o.d ${OBJECTDIR}/interrupts.o.d ${OBJECTDIR}/_TxModuleMain.o.d ${OBJECTDIR}/measuring.o.d ${OBJECTDIR}/smbus.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/adf7023_mint.o ${OBJECTDIR}/configandmux.o ${OBJECTDIR}/si5326.o ${OBJECTDIR}/timestamping.o ${OBJECTDIR}/switching.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/_TxModuleMain.o ${OBJECTDIR}/measuring.o ${OBJECTDIR}/smbus.o ${OBJECTDIR}/pwm_vcxo.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/adf7023_mint.o.d ${OBJECTDIR}/configandmux.o.d ${OBJECTDIR}/si5326.o.d ${OBJECTDIR}/timestamping.o.d ${OBJECTDIR}/switching.o.d ${OBJECTDIR}/interrupts.o.d ${OBJECTDIR}/_TxModuleMain.o.d ${OBJECTDIR}/measuring.o.d ${OBJECTDIR}/smbus.o.d ${OBJECTDIR}/pwm_vcxo.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/adf7023_mint.o ${OBJECTDIR}/configandmux.o ${OBJECTDIR}/si5326.o ${OBJECTDIR}/timestamping.o ${OBJECTDIR}/switching.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/_TxModuleMain.o ${OBJECTDIR}/measuring.o ${OBJECTDIR}/smbus.o
+OBJECTFILES=${OBJECTDIR}/adf7023_mint.o ${OBJECTDIR}/configandmux.o ${OBJECTDIR}/si5326.o ${OBJECTDIR}/timestamping.o ${OBJECTDIR}/switching.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/_TxModuleMain.o ${OBJECTDIR}/measuring.o ${OBJECTDIR}/smbus.o ${OBJECTDIR}/pwm_vcxo.o
 
 
 CFLAGS=
@@ -130,6 +130,11 @@ ${OBJECTDIR}/smbus.o: smbus.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/smbus.o.d 
 	@${FIXDEPS} "${OBJECTDIR}/smbus.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_ICD3=1 -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/smbus.o.d" -o ${OBJECTDIR}/smbus.o smbus.c   
 	
+${OBJECTDIR}/pwm_vcxo.o: pwm_vcxo.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR} 
+	@${RM} ${OBJECTDIR}/pwm_vcxo.o.d 
+	@${FIXDEPS} "${OBJECTDIR}/pwm_vcxo.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_ICD3=1 -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/pwm_vcxo.o.d" -o ${OBJECTDIR}/pwm_vcxo.o pwm_vcxo.c   
+	
 else
 ${OBJECTDIR}/adf7023_mint.o: adf7023_mint.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR} 
@@ -175,6 +180,11 @@ ${OBJECTDIR}/smbus.o: smbus.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR} 
 	@${RM} ${OBJECTDIR}/smbus.o.d 
 	@${FIXDEPS} "${OBJECTDIR}/smbus.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/smbus.o.d" -o ${OBJECTDIR}/smbus.o smbus.c   
+	
+${OBJECTDIR}/pwm_vcxo.o: pwm_vcxo.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR} 
+	@${RM} ${OBJECTDIR}/pwm_vcxo.o.d 
+	@${FIXDEPS} "${OBJECTDIR}/pwm_vcxo.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/pwm_vcxo.o.d" -o ${OBJECTDIR}/pwm_vcxo.o pwm_vcxo.c   
 	
 endif
 
