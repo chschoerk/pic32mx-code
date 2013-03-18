@@ -145,7 +145,7 @@ int main(void) {
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts(); 
 
-    while(1);
+    //while(1);
 
     /*DO IT----------------------------------------------------------*/
     /*ADF: Go to RX state*/
