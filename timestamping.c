@@ -52,18 +52,6 @@ int startDMA1_TxBuffToSpi2(void)
 {
 	DmaChannel		dmaTxChn=DMA_CHANNEL1;	// DMA channel to use for our example
 							// NOTE: the DMA ISR setting has to match the channel number
-	//SpiChannel		spiTxChn=SPI_CHANNEL2;	// the transmitting SPI channel to use in our example
-
-
-	// open and configure the SPI channel to use: master, no frame mode, 8 bit mode.
-	// won't use SS for communicating with the slave
-	// we'll be using 40MHz/4=10MHz SPI clock
-	//SpiChnOpen(spiTxChn, SPI_OPEN_MSTEN|SPI_OPEN_SMP_END|SPI_OPEN_MODE8, 4);
-        //open in slave mode
-        //SpiChnOpen(spiTxChn, SPI_OPEN_SLVEN|SPI_OPEN_SMP_END|SPI_OPEN_MODE32, 4); //open in enhanced buffer mode?
-
-	// open and configure the DMA channel.
-	//DmaChnOpen(dmaTxChn, DMA_CHN_PRI2, DMA_OPEN_DEFAULT);
         DmaChnOpen(dmaTxChn, DMA_CHN_PRI2, DMA_OPEN_AUTO);
 
 	// set the events: we want the SPI transmit buffer empty interrupt to start our transfer
@@ -75,18 +63,12 @@ int startDMA1_TxBuffToSpi2(void)
 	// cell size is one byte: we want one byte to be sent per each SPI TXBE event
 	DmaChnSetTxfer(dmaTxChn, txferTxBuff, (void*)&SPI2BUF, sizeof(txferTxBuff), 4, 4);
 
-	//DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_BLOCK_DONE);
         DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_BLOCK_DONE | DMA_EV_SRC_HALF);	// enable the transfer done interrupt, when all buffer transferred
-
-	INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
-	INTEnableInterrupts();
-
+	//INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
+	//INTEnableInterrupts();
 	INTSetVectorPriority(INT_VECTOR_DMA(dmaTxChn), INT_PRIORITY_LEVEL_5);		// set INT controller priority
 	INTSetVectorSubPriority(INT_VECTOR_DMA(dmaTxChn), INT_SUB_PRIORITY_LEVEL_3);		// set INT controller sub-priority
-
 	INTEnable(INT_SOURCE_DMA(dmaTxChn), INT_ENABLED);		// enable the chn interrupt in the INT controller
-
-        
 	DmaChnStartTxfer(dmaTxChn, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
         
 	return 1;

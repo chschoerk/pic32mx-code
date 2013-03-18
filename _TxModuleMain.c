@@ -16,6 +16,7 @@
 #include "timestamping.h"
 #include "switching.h"
 #include "smbus.h"
+#include "measuring.h"
 #include "_TxModuleMain.h"
 
 
@@ -121,56 +122,32 @@ int main(void) {
     counterValueOld = 0;
     
 
-    /*---SYSTEM CONFIG-------------------------------------------------------------------*/
+    /*---SYSTEM CONFIG---*/
     pbclockfreq = SYSTEMConfig(GetSystemClock(), SYS_CFG_WAIT_STATES | SYS_CFG_PCACHE);
     //SYSTEMConfigWaitStatesAndPB()
     DDPCONbits.JTAGEN = 0; //disable JTAG
+    INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
 
-
-
-    /*---PINMUXING (SWITCHING)-----------------------------------------------------------*/
+    /*---PINMUXING (SWITCHING)---------------------------------------*/
     SwitchOffSport(); //remove with new HW
     pinMux01();
     SwitchADFSpi2Spi1(); //remove with new HW
-    
-    SPI1_configMaster(); //TODO: put this inside a function setupADF()
 
+    /*---SETUP------------------------------------------------------*/
+    setupI2S();                             //I2S (TIMESTAMP OUT)
+    //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
+    setupPWM(); //TODO 32 bit mode          //PWM (VCXO CONTROL)
+    setupEdgeCount();                       //VCXCO EDGE COUNTING
+    setupADF();                             //ADF7023
+    ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
+    setupDetectInterrupt();                 //PREAMBEL DETECTED IRQ
 
-
-    /*---I2S (TIMESTAMP OUT)---*/
-    setupI2S();
-
-    /*---I2C (SMBus slave)---*/
-    //setupSMBus(pbclockfreq);
-
-    /*---PWM (VCXO CONTROL)---*/
-    setupPWM(); //TODO 32 bit mode
+    /*---ENABLE INTERRUPTS------------------------------------------*/
+    INTEnableInterrupts(); 
 
     while(1);
 
-
-
-    /*set up ADF7023------------------------------------------------------*/
-    ADF_Init();
-    ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
-
-
-
-    /*set up interrupts----------------------------------------------------*/
-    /*config interrupt for TX DONE on IRQ3*/
-    INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
-    INTSetVectorPriority(INT_VECTOR_EX_INT(1), INT_PRIORITY_LEVEL_3); //set INT controller priority
-    INTSetVectorSubPriority(INT_VECTOR_EX_INT(1), INT_SUB_PRIORITY_LEVEL_3); //set INT controller sub-priority
-    INTCONbits.INT1EP = 1; //edge polarity -> rising edge
-    IFS0 &= ~0x0100; //clear interrupt flag
-    IEC0 |= 0x0100; //enable INT1 interrupt    
-    /*config counter interrupt (TIMER1) (for counting VCXO clock edges)*/
-    OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, 0xFFFF); //no prescalor other than 1_1 work's?!
-    ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
-    INTEnableInterrupts();
-
-
-    /*DO IT---------------------------------------------------------------*/
+    /*DO IT----------------------------------------------------------*/
     /*ADF: Go to RX state*/
     stallRecover = 0;
     rxDetected = FALSE;

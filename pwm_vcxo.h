@@ -14,6 +14,7 @@ extern "C" {
 
 
 int setupPWM(void);
+int setupEdgeCount(void);
 
 
 #ifdef	__cplusplus

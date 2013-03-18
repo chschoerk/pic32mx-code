@@ -681,6 +681,7 @@ BOOL        ADF_WaitCmdLdr      (void);
 ADF_FwState ADF_GetFwState      (void);
 BOOL        ADF_WaitFWState     (ADF_FwState FWState);
 
+int         setupADF(void);
 BOOL        ADF_Init            (void);
 BOOL        ADF_waitForMISOToGoHigh();
 BOOL        ADF_MCRRegisterReadBack(TyMCR *pMCRin);

@@ -13,6 +13,7 @@
       <itemPath>_TxModuleMain.h</itemPath>
       <itemPath>smbus.h</itemPath>
       <itemPath>pwm_vcxo.h</itemPath>
+      <itemPath>measuring.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"

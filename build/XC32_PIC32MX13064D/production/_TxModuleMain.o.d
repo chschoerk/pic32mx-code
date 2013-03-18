@@ -6,4 +6,5 @@ configandmux.h  \
 timestamping.h  \
 switching.h  \
  smbus.h  \
+measuring.h  \
 _TxModuleMain.h 
