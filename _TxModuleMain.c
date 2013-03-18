@@ -145,9 +145,9 @@ int main(void) {
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts(); 
 
-    //while(1);
 
     /*DO IT----------------------------------------------------------*/
+
     /*ADF: Go to RX state*/
     stallRecover = 0;
     rxDetected = FALSE;
@@ -157,28 +157,19 @@ int main(void) {
     filtOut = expectedValue; //to minimize settling time
 
     mn = 0;
-    while(1){
-        //bOk = bOk & ADF_MMapRead(MCR_interrupt_source_0_Adr, 0x01, &MCRByte);
-        //if (MCRByte & 0x02){
-        //mPORTBToggleBits(BIT_2);
-        
+    while(1){        
         if (rxDetected){
-
             if (skippedFirst){
 
-                /*first test: read received data from packet ram*/
-                bOk = bOk && ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
-                tsData_32 = tsData_8[3];
-                tsData_32 = (tsData_32 << 8) | tsData_8[2];
-                tsData_32 = (tsData_32 << 8) | tsData_8[1];
-                tsData_32 = (tsData_32 << 8) | tsData_8[0];
-                
+                bOk = readTimestampPackage(&tsData_32); //read received data from packet ram
+                /*DEBUG<*/
                 tmpTsData[mn] = tsData_32;
                 mn++;
                 if (mn == 10){
                     bOk = TRUE;
                     mn = 0;
                 }
+                /*>DEBUG*/
 
                 /*----------------------------------------------*/
                 /*simple low pass filter*/

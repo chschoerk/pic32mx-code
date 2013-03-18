@@ -5,6 +5,7 @@
 #include <p32xxxx.h>
 
 #include "configandmux.h"
+#include "adf7023_mint.h"
 #include "timestamping.h"
 
 /*DEFINES---------------------------------------------*/
@@ -46,6 +47,20 @@ int initBuffers()
     }
 
     return 0;
+}
+
+BOOL readTimestampPackage(UINT32 *pData32)
+{
+    BOOL bOk;
+    UINT8 tsData_8[PKT_MAX_PKT_LEN];
+
+    bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
+    *pData32 = tsData_8[3];
+    *pData32 = (*pData32 << 8) | tsData_8[2];
+    *pData32 = (*pData32 << 8) | tsData_8[1];
+    *pData32 = (*pData32 << 8) | tsData_8[0];
+
+    return bOk;
 }
 
 int startDMA1_TxBuffToSpi2(void)

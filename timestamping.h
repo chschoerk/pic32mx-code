@@ -15,6 +15,7 @@ extern "C" {
 
 int setupI2S(void);
 int initBuffers();
+BOOL readTimestampPackage(UINT32 *pData32);
 //int startDMA2_Spi1ToRxBuff(void);
 int startDMA1_TxBuffToSpi1(void);
 
