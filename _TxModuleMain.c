@@ -121,25 +121,27 @@ int main(void) {
     counterValueOld = 0;
     
 
+    /*---SYSTEM CONFIG-------------------------------------------------------------------*/
     pbclockfreq = SYSTEMConfig(GetSystemClock(), SYS_CFG_WAIT_STATES | SYS_CFG_PCACHE);
     //SYSTEMConfigWaitStatesAndPB()
     DDPCONbits.JTAGEN = 0; //disable JTAG
 
-
-    /*configure phase 1---------------------------------------------------*/
-    SwitchOffSport();
+    /*---PINMUXING (SWITCHING)-----------------------------------------------------------*/
+    SwitchOffSport(); //remove with new HW
     pinMux01();
-    mPORTCClearBits(BIT_0); //set CLK_alt low (start off with low clock)
-    SPI1_configMaster();
-    SwitchADFSpi2Spi1();
+    SwitchADFSpi2Spi1(); //remove with new HW
+    
+    SPI1_configMaster(); //TODO: put this inside a function setupADF()
+    
+
+    /*---I2S (TIMESTAMP OUT)-------------------------------------------------------------*/
+    SPI2_configI2S();
 
     /*timestamping--------------------------------------------------------*/
-    SPI2_configI2S();
     TS_initBuffers();
     startDMA1_TxBuffToSpi2();
 
     while(1);
-
 
     /*set up SMBus--------------------------------------------------------*/
     //setupSMBus(pbclockfreq);
