@@ -88,19 +88,52 @@ int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
                 tmp_i1 = *pBufSum - bufSumRef; //signed int!
                 tmp_f1 = (float)1000000 * (float)tmp_i1;
                 *pError = tmp_f1 / (float)bufSumRef;
+                ret = 1;
             }else{
                 bufferFull = fillBuffer(thisVal, pBufSum, buf, &bfIdx);
+                ret = 0; //not yet full
             }
             counterDiff -= thisVal;
        }
-       ret = 1;
+       
 
    }else{ //outlier!
-        ret = 0;
+        ret = -1; //outlier
         outlier = 0;
    }
 }
 
+float anotherFilter(float input)
+{
+    float output = 0;
+    output = input;
+    return output;
+    /*Additional Filter (?)*/
+                    /* e.g. simple low pass filter*/
+                    /*
+                    tmpFilt = (filtOut >> FILT_SZ);
+                    filtOut -= tmpFilt;
+                    filtOut += (counterDiff >> FILT_SZ);
+                    */
+
+                    /*or moving average filter
+                    if (MAWindowFull){
+                        maSum = maSum - TimerVals[tarrInd] + counterDiff;
+                        TimerVals[tarrInd] = counterDiff;
+                        tarrInd++;
+                        tarrInd &= ((0x01<<MA_SIZE)-1); //equals: tarrInd = tarrInd % 2^MA_SIZE
+                        maOutput = maSum >> MA_SIZE; //devide by 2^MA_SIZE
+                    }else{
+                        maSum = maSum + counterDiff; //fill MA window
+                        TimerVals[tarrInd] = counterDiff;
+                        maOutput = maSum >> MA_SIZE; //devide by 2^MA_SIZE
+                        tarrInd++;
+                        if (tarrInd == (0x01<<MA_SIZE)){
+                            MAWindowFull = TRUE;
+                        tarrInd = 0;
+                        }
+                    }*/
+}
 
 
 

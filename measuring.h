@@ -29,6 +29,7 @@ extern "C" {
 int setupDetectInterrupt(void);
 BOOL updateBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx);
 BOOL fillBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx);
+float anotherFilter(float input);
 int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
                      unsigned int counterOverflow, UINT32 *buf,
                      UINT32 *pBufSum, float *pError);

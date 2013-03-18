@@ -44,17 +44,11 @@ int main(void) {
     TyMCR MCRregisters;
     unsigned char dummyDat;
     unsigned int pbclockfreq;
-    UINT32 filtOut;
-    UINT32 expectedValue;
     int skippedFirst = 0;
     UINT32 pBuf[TMEAS_BUFFER_SIZE];
     UINT32 bufSum=0;
-    int outlier=0;
-    float pErrorArray[TMEAS_BUFFER_SIZE];
     float fDeviation;
     UINT32 tsData_32;
-    UINT32 tmpTsData[10];
-    int mn;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -84,71 +78,24 @@ int main(void) {
     INTEnableInterrupts(); 
 
 
-    /*DO IT----------------------------------------------------------*/
-
-    /*ADF: Go to RX state*/
-    stallRecover = 0;
+    /*---LOOP-------------------------------------------------------*/
+    //stallRecover = 0;
     rxDetected = FALSE;
-    bOk = bOk && ADF_GoToRxState();
-
-    expectedValue = TX_COUNTER_PERIOD;
-    filtOut = expectedValue; //to minimize settling time
-
-    mn = 0;
+    bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     while(1){        
         if (rxDetected){
             if (skippedFirst){
 
                 bOk = readTimestampPackage(&tsData_32); //read received data from packet ram
-                /*DEBUG<*/
-                tmpTsData[mn] = tsData_32;
-                mn++;
-                if (mn == 10){
-                    bOk = TRUE;
-                    mn = 0;
-                }
-                /*>DEBUG*/
+                //TODO: send value to timestamp buffer (read DMA pointer here)
 
                 bOk = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
-                if (bOk == FALSE){
-                    //outlier!
-                    outlier = 1; //--> do something
+                if (bOk > 0){
+                    //TODO: set status to synced!
+                    fDeviation = anotherFilter(fDeviation);
+                    //TODO: compute PWM register value
+                    //SetDCOC1PWM(0x7FFF);
                 }
-                /*DEBUG<*/
-                //pErrorArray[bfIdx-1] = fDeviation;
-                //if (bfIdx == 10){ 
-                //    bfIdx = 400;
-                //}
-                /*>DEBUG*/
-
-                /*Additional Filter (?)*/
-                    /* e.g. simple low pass filter*/
-                    /*
-                    tmpFilt = (filtOut >> FILT_SZ);
-                    filtOut -= tmpFilt;
-                    filtOut += (counterDiff >> FILT_SZ);
-                    */
-
-                    /*or moving average filter
-                    if (MAWindowFull){
-                        maSum = maSum - TimerVals[tarrInd] + counterDiff;
-                        TimerVals[tarrInd] = counterDiff;
-                        tarrInd++;
-                        tarrInd &= ((0x01<<MA_SIZE)-1); //equals: tarrInd = tarrInd % 2^MA_SIZE
-                        maOutput = maSum >> MA_SIZE; //devide by 2^MA_SIZE
-                    }else{
-                        maSum = maSum + counterDiff; //fill MA window
-                        TimerVals[tarrInd] = counterDiff;
-                        maOutput = maSum >> MA_SIZE; //devide by 2^MA_SIZE
-                        tarrInd++;
-                        if (tarrInd == (0x01<<MA_SIZE)){
-                            MAWindowFull = TRUE;
-                        tarrInd = 0;
-                        }
-                    }*/
-
-                /*write to PWM register*/
-                //SetDCOC1PWM(0x7FFF);
 
             }
             skippedFirst = 1;
@@ -166,9 +113,8 @@ int main(void) {
             //RetVal = ADF_MMapRead(MCR_interrupt_source_0_Adr, 0x01, &MCRByte);
             //retBool = ADF_ReadStatus(&ADStat);
 
-            //if (stallRecover==1){
-            //    stallRecover = 0;
-            //}
+            /*update sync-status, ...*/
+            //TODO
 
             /*Bring ADF back to RxState*/
             rxDetected = FALSE;
