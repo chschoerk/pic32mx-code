@@ -27,19 +27,10 @@
 #define tSYNCBYTE2          0xA6
 #define tPAYLOADLEN         32   //240 //byte
 
-//#define TX_COUNTER_PERIOD   3932100 //Transmitter: 60 turns with 0xFFFF(+1) timer setting => 60*65536 = 3932160
-                                    //empirical: it's rather 60 x 65535 (i.e. 0xFFFF not 0xFFF+1) ==> 3932100
-                                    //this was found by applying the SAME clock source (f-generator) to TX and RX.
-                                    //If TX_COUNTER_PERIOD = 3932160 then the error for each time measure between two IRQs is around 60.
 #define VCO_FREQ            12288000
-//#define TMEAS_BUFFER_SIZE   512  //==> measuring period = TMEAS_BUFFER_SIZE*TX_COUNTER_PERIOD/VCO_FREQ (e.g. 163.84s);
-                                 //caution: largest number on PIC32: 2^32. if buffer is to long the elapsed time between two points is larger than 2^32.
-                                 //TMEAS_BUFFER_SIZE GOT TO BE 2^X!
-//#define OUTLIER_THRESH      (TX_COUNTER_PERIOD >> 10)
-//#define BUF_SUM_REF         (TX_COUNTER_PERIOD * TMEAS_BUFFER_SIZE)
+
 
 volatile BOOL rxDetected;
-//volatile int TimerVals[(0x01<<MA_SIZE)];
 volatile unsigned int counterValue;
 volatile unsigned int counterValueOld;
 volatile unsigned int counterOverflow;
@@ -47,84 +38,28 @@ volatile unsigned int counterOverflow;
 volatile unsigned int stallRecover;
 
 
-
-/*function: fillBuffer*/
-/*
-BOOL fillBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
-{
-    BOOL full = FALSE;
-
-    *bufSum += val;
-    buf[*bfIdx] = val;
-    (*bfIdx)++;
-    if (*bfIdx == TMEAS_BUFFER_SIZE){
-        full = TRUE;
-        *bfIdx = 0;
-    }
-    return full;
-}*/
-
-/*function: updateBuffer*/
-/*
-BOOL updateBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
-{
-    *bufSum = *bufSum - buf[*bfIdx] + val;
-    buf[*bfIdx] = val;
-    (*bfIdx)++;
-    *bfIdx &= (TMEAS_BUFFER_SIZE-1); //equals: bfIdx = bfIdx % TMEAS_BUFFER_SIZE if TMEAS_BUFFER_SIZE is 2^x
-
-    return 0;
-}*/
-
-
-/*
- *
- */
 int main(void) {
 
     BOOL bOk = TRUE;
     TyMCR MCRregisters;
     unsigned char dummyDat;
-    //UINT32 counterDiff;
-    //float measTurns_float;
-    //int measTurns_int;
-    int tarrInd = 0;
-    int tmpInd = 0;
     unsigned int pbclockfreq;
-    int tmpC = 0;
     UINT32 filtOut;
     UINT32 expectedValue;
     int skippedFirst = 0;
     UINT32 pBuf[TMEAS_BUFFER_SIZE];
     UINT32 bufSum=0;
-    //BOOL bufferFull = FALSE;
-    //unsigned int bfIdx=0;
-    //UINT32 cDiff;
-    //UINT32 res;
-    //UINT32 thisVal;
     int outlier=0;
-    //UINT32 bufSumRef = BUF_SUM_REF;
     float pErrorArray[TMEAS_BUFFER_SIZE];
     float fDeviation;
-    //float tmp_f1;
-    //int tmp_i1;
-    int i;
-    UINT8 tsData_8[PKT_MAX_PKT_LEN];
     UINT32 tsData_32;
     UINT32 tmpTsData[10];
     int mn;
-
-    /*debugging*/
-    unsigned char MCRByte;
-    unsigned char RetVal;
-    BOOL retBool;
-    ADFSTA_Reg ADStat;
 
     counterOverflow = 0;
     counterValue = 0;
     counterValueOld = 0;
     
-
     /*---SYSTEM CONFIG---*/
     pbclockfreq = SYSTEMConfig(GetSystemClock(), SYS_CFG_WAIT_STATES | SYS_CFG_PCACHE);
     //SYSTEMConfigWaitStatesAndPB()
@@ -175,6 +110,10 @@ int main(void) {
                 /*>DEBUG*/
 
                 bOk = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
+                if (bOk == FALSE){
+                    //outlier!
+                    outlier = 1; //--> do something
+                }
                 /*DEBUG<*/
                 //pErrorArray[bfIdx-1] = fDeviation;
                 //if (bfIdx == 10){ 
