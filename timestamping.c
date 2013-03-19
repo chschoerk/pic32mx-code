@@ -26,6 +26,9 @@ volatile int srcPtrOverruns = 0;
 volatile UINT32 timestamp = 0;
 volatile int srcPtr = -1;
 
+volatile UINT32 tmpTime[20];
+volatile unsigned int tmpArr[20];
+
 
 int setupI2S()
 {
@@ -79,7 +82,9 @@ BOOL updateTimestamp()
 
 void updateDMASourcePointer(void)
 {
-    srcPtr = DmaChnGetSrcPnt(DMA_CHANNEL1);
+    int tmp;
+    tmp = DmaChnGetSrcPnt(DMA_CHANNEL1);
+    srcPtr = tmp >> 2; //floor(srcPtr_byte/4) => index of the current buffer element (UINT32)
 }
 
 int startDMA1_TxBuffToSpi2(void)
@@ -117,6 +122,7 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
     int     mx = 0;
     static unsigned int counter = 0;
     unsigned int passedSamples;
+    static int tmpIdx = 0;
 
     INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
     evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
@@ -126,8 +132,17 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
 
         if (srcPtr != -1){
 
-            passedSamples = (TXBUFFSZ-srcPtr) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
+            passedSamples = (TXBUFFSZ-srcPtr+1) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
+                    //cant srcPtrOverrungs ever be > 0? Don't think so
             counter = timestamp + passedSamples;
+
+            tmpArr[tmpIdx] = counter;
+            tmpTime[tmpIdx] = timestamp;
+            tmpIdx++;
+            if (tmpIdx == 20){
+                tmpIdx = 0;
+            }
+
             srcPtrOverruns = 0;
             srcPtr = -1; //set to status "no new timestamp received"
         }
