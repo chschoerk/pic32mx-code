@@ -22,6 +22,10 @@ UINT8                   txferRxBuff[RXBUFFSZ];
 static volatile int     RxBufferADone = 0;
 static volatile int     RxBufferBDone = 0;
 
+volatile int srcPtrOverruns = 0;
+volatile UINT32 timestamp = 0;
+volatile int srcPtr = -1;
+
 
 int setupI2S()
 {
@@ -49,18 +53,33 @@ int initBuffers()
     return 0;
 }
 
-BOOL readTimestampPackage(UINT32 *pData32)
+
+void resetSrcPtrOverruns()
+{
+    srcPtrOverruns = 0;
+}
+
+BOOL updateTimestamp()
 {
     BOOL bOk;
     UINT8 tsData_8[PKT_MAX_PKT_LEN];
+    UINT32 tmp32;
 
     bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
-    *pData32 = tsData_8[3];
-    *pData32 = (*pData32 << 8) | tsData_8[2];
-    *pData32 = (*pData32 << 8) | tsData_8[1];
-    *pData32 = (*pData32 << 8) | tsData_8[0];
+    tmp32 = tsData_8[3];
+    tmp32 = (tmp32 << 8) | tsData_8[2];
+    tmp32 = (tmp32 << 8) | tsData_8[1];
+    tmp32 = (tmp32 << 8) | tsData_8[0];
+
+    timestamp = tmp32;
 
     return bOk;
+}
+
+
+void updateDMASourcePointer(void)
+{
+    srcPtr = DmaChnGetSrcPnt(DMA_CHANNEL1);
 }
 
 int startDMA1_TxBuffToSpi2(void)
@@ -94,51 +113,41 @@ int startDMA1_TxBuffToSpi2(void)
 // handler for the DMA channel 1 interrupt
 void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
 {
-    
-	int	evFlags;				// event flags when getting the interrupt
-        int     mx = 0;
-        static int counter = 0;
+    int	evFlags;				// event flags when getting the interrupt
+    int     mx = 0;
+    static unsigned int counter = 0;
+    unsigned int passedSamples;
 
-	INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
+    INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
+    evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
 
-	evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
-
-    if(evFlags&DMA_EV_BLOCK_DONE)
-    {
-    	//DmaTxIntFlag=1;
+    if(evFlags&DMA_EV_BLOCK_DONE){
  	DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_BLOCK_DONE);
 
-        mx = TXBUFFSZ_HALF;
-        while(mx < TXBUFFSZ)
-        {
-            //txferTxBuff[mx] = 0xffff0000;
-            
-            txferTxBuff[mx] = counter;
-            counter++;
-            //if (counter < 0xfffffffe){
-            //    counter++;
-            //}
-            mx++;
-            
+        if (srcPtr != -1){
+
+            passedSamples = (TXBUFFSZ-srcPtr) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
+            counter = timestamp + passedSamples;
+            srcPtrOverruns = 0;
+            srcPtr = -1; //set to status "no new timestamp received"
         }
 
-    }
-
-    if(evFlags&DMA_EV_SRC_HALF)
-    {
-        DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_HALF);
-        mx = 0;
-        while(mx < TXBUFFSZ_HALF)
-        {
-            //txferTxBuff[mx] = 0xffff0000;
-            
+        srcPtrOverruns++;
+        mx = TXBUFFSZ_HALF;
+        while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR
             txferTxBuff[mx] = counter;
             counter++;
-            //if (counter < 0xfffffffe){
-            //    counter++;
-            //}
-            mx++;
-            
+            mx++;  
+        }
+    }
+
+    if(evFlags&DMA_EV_SRC_HALF){
+        DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_HALF);
+        mx = 0;
+        while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
+            txferTxBuff[mx] = counter;
+            counter++;
+            mx++;     
         }
     }
 

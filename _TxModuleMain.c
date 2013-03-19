@@ -35,6 +35,9 @@ volatile unsigned int counterValue;
 volatile unsigned int counterValueOld;
 volatile unsigned int counterOverflow;
 
+//volatile int tmpIdx = 0;
+//volatile int tmpSrcPtrArray[10];
+
 volatile unsigned int stallRecover;
 
 
@@ -48,7 +51,6 @@ int main(void) {
     UINT32 pBuf[TMEAS_BUFFER_SIZE];
     UINT32 bufSum=0;
     float fDeviation;
-    UINT32 tsData_32;
     int ret;
 
     counterOverflow = 0;
@@ -87,15 +89,15 @@ int main(void) {
         if (rxDetected){
             if (skippedFirst){
 
-                bOk = readTimestampPackage(&tsData_32); //read received data from packet ram
+                bOk = updateTimestamp(); //read received data from packet ram and write to timestamp
                 //TODO: send value to timestamp buffer (read DMA pointer here)
 
                 ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
                 if (ret > 0){
-                    //TODO: set status to synced!
                     fDeviation = anotherFilter(fDeviation);
+                    //TODO: set status to synced                  
                     //TODO: compute PWM register value
-                    //SetDCOC1PWM(0x7FFF);
+                    //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
                 }
 
             }
@@ -133,36 +135,25 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
    //read and reset counter value TMR1
    while(T1CON & 0x0800); //check T1CON.TWIP and wait until theres no write to TMR1 in progess
    counterValue = TMR1;
+
+   updateDMASourcePointer();
+   resetSrcPtrOverruns();
+
    rxDetected = TRUE;
-   //mPORTBToggleBits(BIT_2);
    mINT1ClearIntFlag();
 
 }
 
 void __ISR(_TIMER_1_VECTOR, ipl1) T1Interrupt()
 {
-   //unsigned char MCRByte;
-   //unsigned char RetVal;
-   //BOOL retBool;
-   //ADFSTA_Reg ADStat;
-
    counterOverflow++;
-   //stallRecover = 0;
-   //if (counterOverflow > 5000){
-       //RetVal = ADF_MMapRead(MCR_interrupt_source_0_Adr, 0x01, &MCRByte);
-       //retBool = ADF_ReadStatus(&ADStat);
-       //counterOverflow = 0;
-   //    rxDetected = TRUE;
-   //    stallRecover = 1;
-       //mPORTBToggleBits(BIT_2);
-   //}
    mPORTBToggleBits(BIT_2);
    mT1ClearIntFlag();
 }
 
-
+/*
 void __ISR(_TIMER_3_VECTOR, ipl2) T3Interrupt()
 {
    //mPORTBToggleBits(BIT_13);
    mT3ClearIntFlag();
-}
+}*/

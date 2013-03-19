@@ -15,9 +15,10 @@ extern "C" {
 
 int setupI2S(void);
 int initBuffers();
-BOOL readTimestampPackage(UINT32 *pData32);
-//int startDMA2_Spi1ToRxBuff(void);
+BOOL updateTimestamp(void);
+void updateDMASourcePointer(void);
 int startDMA1_TxBuffToSpi1(void);
+void resetSrcPtrOverruns(void);
 
 
 #ifdef	__cplusplus
