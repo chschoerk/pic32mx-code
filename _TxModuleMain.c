@@ -49,6 +49,7 @@ int main(void) {
     UINT32 bufSum=0;
     float fDeviation;
     UINT32 tsData_32;
+    int ret;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -89,8 +90,8 @@ int main(void) {
                 bOk = readTimestampPackage(&tsData_32); //read received data from packet ram
                 //TODO: send value to timestamp buffer (read DMA pointer here)
 
-                bOk = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
-                if (bOk > 0){
+                ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
+                if (ret > 0){
                     //TODO: set status to synced!
                     fDeviation = anotherFilter(fDeviation);
                     //TODO: compute PWM register value

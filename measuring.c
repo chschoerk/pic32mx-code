@@ -101,6 +101,8 @@ int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
         ret = -1; //outlier
         outlier = 0;
    }
+
+   return ret;
 }
 
 float anotherFilter(float input)
