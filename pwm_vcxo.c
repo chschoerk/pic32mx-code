@@ -6,7 +6,6 @@
 #include "pwm_vcxo.h"
 
 
-
 int setupPWM()
 {
     OpenOC1( OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE | OC_TIMER_MODE16, 0, 0);

@@ -84,9 +84,9 @@ int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
             thisVal = counterDiff/i;
             if (bufferFull){
                 updateBuffer(thisVal, pBufSum, buf, &bfIdx);
-                /*estimate frequency error [ppm]*/
+                /*estimate frequency error [ppb]*/
                 tmp_i1 = *pBufSum - bufSumRef; //signed int!
-                tmp_f1 = (float)1000000 * (float)tmp_i1;
+                tmp_f1 = (float)1000000000 * (float)tmp_i1;
                 *pError = tmp_f1 / (float)bufSumRef;
                 ret = 1;
             }else{

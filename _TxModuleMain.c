@@ -90,11 +90,10 @@ int main(void) {
             if (skippedFirst){
 
                 bOk = updateTimestamp(); //read received data from packet ram and write to timestamp
-                //TODO: send value to timestamp buffer (read DMA pointer here)
 
                 ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
                 if (ret > 0){
-                    fDeviation = anotherFilter(fDeviation);
+                    fDeviation = anotherFilter(fDeviation); //or control loop (PID)
                     //TODO: set status to synced                  
                     //TODO: compute PWM register value
                     //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
