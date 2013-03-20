@@ -15,7 +15,7 @@ extern "C" {
 
 int setupI2S(void);
 int initBuffers();
-BOOL updateTimestamp(void);
+UINT32 updateTimestamp(void);
 void updateDMASourcePointer(void);
 int startDMA1_TxBuffToSpi1(void);
 void resetSrcPtrOverruns(void);

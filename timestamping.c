@@ -6,6 +6,7 @@
 
 #include "configandmux.h"
 #include "adf7023_mint.h"
+#include "measuring.h"
 #include "timestamping.h"
 
 /*DEFINES---------------------------------------------*/
@@ -62,11 +63,12 @@ void resetSrcPtrOverruns()
     srcPtrOverruns = 0;
 }
 
-BOOL updateTimestamp()
+UINT32 updateTimestamp()
 {
     BOOL bOk;
     UINT8 tsData_8[PKT_MAX_PKT_LEN];
     UINT32 tmp32;
+    UINT32 ret;
 
     bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
     tmp32 = tsData_8[3];
@@ -74,11 +76,11 @@ BOOL updateTimestamp()
     tmp32 = (tmp32 << 8) | tsData_8[1];
     tmp32 = (tmp32 << 8) | tsData_8[0];
 
+    ret = tmp32 - timestamp; //if no packages have been skipped, this is 1
     timestamp = tmp32;
 
-    return bOk;
+    return ret;
 }
-
 
 void updateDMASourcePointer(void)
 {

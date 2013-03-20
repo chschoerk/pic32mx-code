@@ -7,6 +7,7 @@
 #include "measuring.h"
 
 
+UINT32 txCounterPeriod = T1TURNS * T1PR;
 
 
 
@@ -22,7 +23,7 @@ int setupDetectInterrupt()
 
 
 /*function: updateBuffer*/
-BOOL updateBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
+BOOL updateBuffer(INT32 val, INT32 *bufSum, INT32 *buf, unsigned int *bfIdx)
 {
     *bufSum = *bufSum - buf[*bfIdx] + val;
     buf[*bfIdx] = val;
@@ -32,7 +33,7 @@ BOOL updateBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
     return 0;
 }
 
-BOOL fillBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
+BOOL fillBuffer(INT32 val, INT32 *bufSum, INT32 *buf, unsigned int *bfIdx)
 {
     BOOL full = FALSE;
 
@@ -48,49 +49,64 @@ BOOL fillBuffer(UINT32 val, UINT32 *bufSum, UINT32 *buf, int *bfIdx)
 
 
 int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld, 
-                     unsigned int counterOverflow, UINT32 *buf, 
-                     UINT32 *pBufSum, float *pError)
+                     unsigned int counterOverflow, INT32 *buf,
+                     INT32 *pBufSum, UINT32 turns, INT32 *pError)
 {
     UINT32 counterDiff, cDiff, res, thisVal;
     float measTurns_float, tmp_f1;
-    int measTurns_int, outlier, i, tmp_i1;
+    UINT32 outlier, i;
+    UINT32 outlierThreshold;
+    INT32 tmp_i1, indivError;
     static BOOL bufferFull = FALSE;
     static unsigned int bfIdx=0;
-    UINT32 bufSumRef = BUF_SUM_REF;
+    //UINT32 bufSumRef = BUF_SUM_REF;
     int ret;
+
+    outlierThreshold = txCounterPeriod >> 10;
 
     /*compute counter difference between old value and new value*/
     if (counterOverflow){
-        counterDiff = (0xFFFF - cntrValOld) + (counterOverflow-1)*0xFFFF + cntrVal;
+        counterDiff = (T1PR - cntrValOld) + ((counterOverflow-1)*T1PR) + cntrVal;
     }else{
         counterDiff = cntrVal - cntrValOld;
     }
 
     outlier = 0;
-    measTurns_float = counterDiff/(float)TX_COUNTER_PERIOD;
-    measTurns_int = (int)(measTurns_float + 0.5f);
-    if (measTurns_int){
-        cDiff = counterDiff/measTurns_int; //FLOORED VALUE!
-    }else{
-        outlier = 1;
-        measTurns_int = 1; //just so that we don't divide by 0 in the next line
-    }
-
-    res = counterDiff - (cDiff*measTurns_int); //residual
-    if (res < OUTLIER_THRESH && outlier == 0){
+    //TODO: dump this ugly computation and use timestamp info instead
+    //measTurns_float = counterDiff/(float)txCounterPeriod;
+    //measTurns_int = (int)(measTurns_float + 0.5f);
+    //if (measTurns_int){
+    //    cDiff = counterDiff/measTurns_int; //FLOORED VALUE!
+    //}else{
+    //    outlier = 1;
+    //    measTurns_int = 1; //just so that we don't divide by 0 in the next line
+    //}
+    cDiff = counterDiff/turns; //FLOORED VALUE!
+    res = counterDiff - (cDiff*turns); //residual
+    if (res < outlierThreshold && outlier == 0){
         /*Fill buffer with value(s). If packets have been skipped,
          *distribute values equally across buffer entries (no rounding)*/
-        for (i = measTurns_int; i > 0; i--){
+        for (i = turns; i > 0; i--){
             thisVal = counterDiff/i;
+            indivError = (INT32)(thisVal - txCounterPeriod); //fill buffer with individual errors
+
+            //DEBUG
+            if ( (indivError < -2000) || (indivError > 2000) ){
+                indivError++;
+            }
+
             if (bufferFull){
-                updateBuffer(thisVal, pBufSum, buf, &bfIdx);
+                updateBuffer(indivError, pBufSum, buf, &bfIdx);
                 /*estimate frequency error [ppb]*/
-                tmp_i1 = *pBufSum - bufSumRef; //signed int!
-                tmp_f1 = (float)1000000000 * (float)tmp_i1;
-                *pError = tmp_f1 / (float)bufSumRef;
+                //tmp_i1 = *pBufSum - bufSumRef; //signed int!
+                //tmp_i1 = *pBufSum;
+                //tmp_f1 = (float)1000000 * (float)tmp_i1;
+                //*pError = tmp_f1 / (float)bufSumRef;
+                *pError = *pBufSum;
                 ret = 1;
             }else{
-                bufferFull = fillBuffer(thisVal, pBufSum, buf, &bfIdx);
+                bufferFull = fillBuffer(indivError, pBufSum, buf, &bfIdx);
+                *pError = *pBufSum;
                 ret = 0; //not yet full
             }
             counterDiff -= thisVal;
@@ -105,9 +121,9 @@ int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
    return ret;
 }
 
-float anotherFilter(float input)
+INT32 anotherFilter(INT32 input)
 {
-    float output = 0;
+    INT32 output = 0;
     output = input;
     return output;
     /*Additional Filter (?)*/

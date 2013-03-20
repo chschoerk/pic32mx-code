@@ -48,9 +48,14 @@ int main(void) {
     unsigned char dummyDat;
     unsigned int pbclockfreq;
     int skippedFirst = 0;
-    UINT32 pBuf[TMEAS_BUFFER_SIZE];
-    UINT32 bufSum=0;
-    float fDeviation;
+    INT32 pBuf[TMEAS_BUFFER_SIZE];
+    INT32 bufSum=0;
+    INT32 fDeviation;
+    INT32 errorVec[512];
+    UINT32 turns;
+    UINT32 tmpTunrsArr[512];
+    int timeStampIncrement;
+    int errIdx=0;
     int ret;
 
     counterOverflow = 0;
@@ -83,24 +88,39 @@ int main(void) {
 
     /*---LOOP-------------------------------------------------------*/
     //stallRecover = 0;
+    timeStampIncrement = (T1TURNS*T1PR) / (12288000/48000);
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     while(1){        
         if (rxDetected){
             if (skippedFirst){
 
-                bOk = updateTimestamp(); //read received data from packet ram and write to timestamp
+                turns = updateTimestamp(); //read received data from packet ram and write to timestamp
+                turns = turns/timeStampIncrement;
 
-                ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, &fDeviation);
-                if (ret > 0){
-                    fDeviation = anotherFilter(fDeviation); //or control loop (PID)
-                    //TODO: set status to synced                  
-                    //TODO: compute PWM register value
-                    //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
+                tmpTunrsArr[errIdx] = turns;
+                //turns = 1; //TIMESTAMPS ARE NOT WORKING RIGHT NOW???
+                if (turns){
+                    ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, turns, &fDeviation);
+                    if (ret > 0){
+                        //fDeviation = anotherFilter(fDeviation); //or control loop (PID-Regler)
+                        errorVec[errIdx] = fDeviation; //debug
+                        errIdx++;
+                        if(errIdx==512){
+                            errIdx=0;
+                        }
+                        //TODO: set status to synced
+                        //TODO: compute PWM register value
+                        //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
+                    }
                 }
 
+            }else{ //if(skippedFirst)
+
+                updateTimestamp(); //save received timestamp
+                skippedFirst = 1;
+
             }
-            skippedFirst = 1;
 
             /*reset counters*/
             counterOverflow = 0;
