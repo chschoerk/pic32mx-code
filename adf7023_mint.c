@@ -778,10 +778,10 @@ void ADF_BBRAMDefault(TyBBRAM *pBBRAM)
    // Symbol Paramters
    pBBRAM->symbol_mode_r = symbol_mode_symbol_length_8_bit          |
                            //symbol_mode_data_whitening_disabled      |
-                           symbol_mode_data_whitening_enabled       |
+                           symbol_mode_data_whitening_disabled       |
                            symbol_mode_eight_ten_enc_disabled       |
                            symbol_mode_prog_crc_en_disabled         | // Default CRC selected (x16 + x15 + x2 + 1)
-                           symbol_mode_manchester_enc_disabled ;
+                           symbol_mode_manchester_enc_enabled ;
 
    // Length of (TX) preamble in bytes. Example a value of decimal 3
    // results in a preamble of 24 bits.

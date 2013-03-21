@@ -66,7 +66,7 @@ void resetSrcPtrOverruns()
 UINT32 updateTimestamp()
 {
     BOOL bOk;
-    UINT8 tsData_8[PKT_MAX_PKT_LEN];
+    unsigned char tsData_8[PKT_MAX_PKT_LEN];
     UINT32 tmp32;
     UINT32 ret;
 
@@ -76,7 +76,8 @@ UINT32 updateTimestamp()
     tmp32 = (tmp32 << 8) | tsData_8[1];
     tmp32 = (tmp32 << 8) | tsData_8[0];
 
-    ret = tmp32 - timestamp; //if no packages have been skipped, this is 1
+    //ret = tmp32 - timestamp; //if no packages have been skipped, this is 1
+    ret = tmp32;
     timestamp = tmp32;
 
     return ret;

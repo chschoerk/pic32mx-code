@@ -31,9 +31,9 @@
 
 
 volatile BOOL rxDetected;
-volatile unsigned int counterValue;
-volatile unsigned int counterValueOld;
-volatile unsigned int counterOverflow;
+volatile unsigned int counterValue = 0;
+volatile unsigned int counterValueOld = 0;
+volatile unsigned int counterOverflow = 0;
 
 //volatile int tmpIdx = 0;
 //volatile int tmpSrcPtrArray[10];
@@ -53,10 +53,17 @@ int main(void) {
     INT32 fDeviation;
     INT32 errorVec[512];
     UINT32 turns;
-    UINT32 tmpTunrsArr[512];
-    int timeStampIncrement;
+    UINT32 tmpArr[100];
+    UINT32 tmpTurnArr[100];
+    UINT32 ts = 0;
+    UINT32 tsOld = 0;
+    int tmpIdx=0;
+    UINT32 timeStampIncrement;
     int errIdx=0;
     int ret;
+    unsigned char tsData_8[4];
+    UINT32 tmp32;
+    int i;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -88,19 +95,29 @@ int main(void) {
 
     /*---LOOP-------------------------------------------------------*/
     //stallRecover = 0;
-    timeStampIncrement = (T1TURNS*T1PR) / (12288000/48000);
+    timeStampIncrement = (UINT32)((T1TURNS*T1PR) / (12288000/48000));
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     while(1){        
         if (rxDetected){
+            
             if (skippedFirst){
 
-                turns = updateTimestamp(); //read received data from packet ram and write to timestamp
-                turns = turns/timeStampIncrement;
+                i = 50000;
+                while(i--); //wait
 
-                tmpTunrsArr[errIdx] = turns;
+                ts = updateTimestamp(); //read received data from packet ram and write to timestamp
+                turns = (ts - tsOld)/timeStampIncrement;
+                tsOld = ts;
+                tmpArr[tmpIdx] = ts;
+                tmpTurnArr[tmpIdx] = turns;
+                tmpIdx++;
+                if (tmpIdx == 100){
+                    tmpIdx = 0;
+                }
                 //turns = 1; //TIMESTAMPS ARE NOT WORKING RIGHT NOW???
-                if (turns){
+
+                if (turns == 1){
                     ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, turns, &fDeviation);
                     if (ret > 0){
                         //fDeviation = anotherFilter(fDeviation); //or control loop (PID-Regler)
@@ -117,10 +134,33 @@ int main(void) {
 
             }else{ //if(skippedFirst)
 
-                updateTimestamp(); //save received timestamp
+                ts = updateTimestamp(); //save received timestamp
+                tsOld = ts;
+                tmpArr[tmpIdx] = ts;
+                tmpTurnArr[tmpIdx] = -1;
+                tmpIdx++;
                 skippedFirst = 1;
 
             }
+            
+
+            /*DEBUG
+            i = 50000;
+            while(i--);
+            bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
+            tmp32 = tsData_8[3];
+            tmp32 = (tmp32 << 8) | tsData_8[2];
+            tmp32 = (tmp32 << 8) | tsData_8[1];
+            tmp32 = (tmp32 << 8) | tsData_8[0];
+            tmpArr[tmpIdx] = tmp32;
+            if (tmpIdx > 0){
+                tmpTurnArr[tmpIdx] = tmpArr[tmpIdx] - tmpArr[tmpIdx-1];
+            }
+            tmpIdx++;
+            if (tmpIdx == 100){
+                tmpIdx = 0;
+            }
+            */
 
             /*reset counters*/
             counterOverflow = 0;
