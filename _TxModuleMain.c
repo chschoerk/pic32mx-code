@@ -51,18 +51,14 @@ int main(void) {
     INT32 pBuf[TMEAS_BUFFER_SIZE];
     INT32 bufSum=0;
     INT32 fDeviation;
-    INT32 errorVec[512];
     UINT32 turns;
-    UINT32 tmpArr[100];
-    UINT32 tmpTurnArr[100];
     UINT32 ts = 0;
     UINT32 tsOld = 0;
-    int tmpIdx=0;
+    UINT32 edgeCount = 0;
     UINT32 timeStampIncrement;
-    int errIdx=0;
+
+    int sane;
     int ret;
-    unsigned char tsData_8[4];
-    UINT32 tmp32;
     int i;
 
     counterOverflow = 0;
@@ -103,29 +99,23 @@ int main(void) {
             
             if (skippedFirst){
 
-                i = 50000;
+                i = 10000;
                 while(i--); //wait
 
-                ts = updateTimestamp(); //read received data from packet ram and write to timestamp
+                ts = readReceivedTimestamp();
                 turns = (ts - tsOld)/timeStampIncrement;
                 tsOld = ts;
-                tmpArr[tmpIdx] = ts;
-                tmpTurnArr[tmpIdx] = turns;
-                tmpIdx++;
-                if (tmpIdx == 100){
-                    tmpIdx = 0;
-                }
-                //turns = 1; //TIMESTAMPS ARE NOT WORKING RIGHT NOW???
+                edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
 
-                if (turns == 1){
-                    ret = measureFrequency(counterValue, counterValueOld, counterOverflow, pBuf, &bufSum, turns, &fDeviation);
+                sane = sanityCheck(edgeCount, turns);
+              
+                if (sane){
+                    updateTimestamp(ts);
+                    ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (ret > 0){
+                        ret = 10; //dummy
                         //fDeviation = anotherFilter(fDeviation); //or control loop (PID-Regler)
-                        errorVec[errIdx] = fDeviation; //debug
-                        errIdx++;
-                        if(errIdx==512){
-                            errIdx=0;
-                        }
+                        
                         //TODO: set status to synced
                         //TODO: compute PWM register value
                         //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
@@ -134,33 +124,12 @@ int main(void) {
 
             }else{ //if(skippedFirst)
 
-                ts = updateTimestamp(); //save received timestamp
+                ts = readReceivedTimestamp();
                 tsOld = ts;
-                tmpArr[tmpIdx] = ts;
-                tmpTurnArr[tmpIdx] = -1;
-                tmpIdx++;
                 skippedFirst = 1;
 
             }
             
-
-            /*DEBUG
-            i = 50000;
-            while(i--);
-            bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
-            tmp32 = tsData_8[3];
-            tmp32 = (tmp32 << 8) | tsData_8[2];
-            tmp32 = (tmp32 << 8) | tsData_8[1];
-            tmp32 = (tmp32 << 8) | tsData_8[0];
-            tmpArr[tmpIdx] = tmp32;
-            if (tmpIdx > 0){
-                tmpTurnArr[tmpIdx] = tmpArr[tmpIdx] - tmpArr[tmpIdx-1];
-            }
-            tmpIdx++;
-            if (tmpIdx == 100){
-                tmpIdx = 0;
-            }
-            */
 
             /*reset counters*/
             counterOverflow = 0;

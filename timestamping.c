@@ -12,22 +12,23 @@
 /*DEFINES---------------------------------------------*/
 #define TXBUFFSZ                64
 #define TXBUFFSZ_HALF           (TXBUFFSZ/2)
-#define RXBUFFSZ                6
-#define RXBUFFSZ_HALF           (RXBUFFSZ/2)
+//#define RXBUFFSZ                6
+//#define RXBUFFSZ_HALF           (RXBUFFSZ/2)
 
 
 
 /*GLOBALS----------------------------------------------*/
 UINT32                  txferTxBuff[TXBUFFSZ];
-UINT8                   txferRxBuff[RXBUFFSZ];
+//UINT8                   txferRxBuff[RXBUFFSZ];
 static volatile int     RxBufferADone = 0;
 static volatile int     RxBufferBDone = 0;
 
 volatile int srcPtrOverruns = 0;
 volatile UINT32 timestamp = 0;
 volatile int srcPtr = -1;
+volatile int gotNewTimestamp = 0;
 
-volatile UINT32 tmpTime[20];
+//volatile UINT32 tmpTime[20];
 volatile unsigned int tmpArr[20];
 
 
@@ -63,12 +64,11 @@ void resetSrcPtrOverruns()
     srcPtrOverruns = 0;
 }
 
-UINT32 updateTimestamp()
+UINT32 readReceivedTimestamp()
 {
     BOOL bOk;
     unsigned char tsData_8[PKT_MAX_PKT_LEN];
     UINT32 tmp32;
-    UINT32 ret;
 
     bOk = ADF_MMapRead(PKT_RAM_BASE_PTR, PKT_MAX_PKT_LEN, tsData_8);
     tmp32 = tsData_8[3];
@@ -76,11 +76,13 @@ UINT32 updateTimestamp()
     tmp32 = (tmp32 << 8) | tsData_8[1];
     tmp32 = (tmp32 << 8) | tsData_8[0];
 
-    //ret = tmp32 - timestamp; //if no packages have been skipped, this is 1
-    ret = tmp32;
-    timestamp = tmp32;
+    return tmp32;
+}
 
-    return ret;
+void updateTimestamp(UINT32 timestampNew)
+{
+    timestamp = timestampNew;
+    gotNewTimestamp = 1;
 }
 
 void updateDMASourcePointer(void)
@@ -133,21 +135,22 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
     if(evFlags&DMA_EV_BLOCK_DONE){
  	DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_BLOCK_DONE);
 
-        if (srcPtr != -1){
+        if (gotNewTimestamp){
 
             passedSamples = (TXBUFFSZ-srcPtr+1) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
                     //cant srcPtrOverrungs ever be > 0? Don't think so
             counter = timestamp + passedSamples;
 
+            /*
             tmpArr[tmpIdx] = counter;
             tmpTime[tmpIdx] = timestamp;
             tmpIdx++;
             if (tmpIdx == 20){
                 tmpIdx = 0;
-            }
+            }*/
 
             srcPtrOverruns = 0;
-            srcPtr = -1; //set to status "no new timestamp received"
+            gotNewTimestamp = 0; //set to status "no new timestamp received"
         }
 
         srcPtrOverruns++;

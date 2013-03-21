@@ -29,9 +29,9 @@ extern "C" {
 int setupDetectInterrupt(void);
 BOOL updateBuffer(INT32 val, INT32 *bufSum, INT32 *buf, unsigned int *bfIdx);
 BOOL fillBuffer(INT32 val, INT32 *bufSum, INT32 *buf, unsigned int *bfIdx);
+int sanityCheck(UINT32 edgeCount, UINT32 turns);
 INT32 anotherFilter(INT32 input);
-int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
-                     unsigned int counterOverflow, INT32 *buf,
+int measureFrequency(UINT32 edgeCount, INT32 *buf,
                      INT32 *pBufSum, UINT32 turns, INT32 *pError);
 
 

@@ -47,47 +47,48 @@ BOOL fillBuffer(INT32 val, INT32 *bufSum, INT32 *buf, unsigned int *bfIdx)
     return full;
 }
 
-
-int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld, 
-                     unsigned int counterOverflow, INT32 *buf,
-                     INT32 *pBufSum, UINT32 turns, INT32 *pError)
+int sanityCheck(UINT32 edgeCount, UINT32 turns)
 {
-    UINT32 counterDiff, cDiff, res, thisVal;
-    float measTurns_float, tmp_f1;
-    UINT32 outlier, i;
-    UINT32 outlierThreshold;
-    INT32 tmp_i1, indivError;
-    static BOOL bufferFull = FALSE;
-    static unsigned int bfIdx=0;
-    //UINT32 bufSumRef = BUF_SUM_REF;
-    int ret;
+    UINT32 v1, dist, sanityThresh;
+    int sanity = 0;
 
-    outlierThreshold = txCounterPeriod >> 10;
-
-    /*compute counter difference between old value and new value*/
-    if (counterOverflow){
-        counterDiff = (T1PR - cntrValOld) + ((counterOverflow-1)*T1PR) + cntrVal;
-    }else{
-        counterDiff = cntrVal - cntrValOld;
+    if (turns == 0){
+        sanity = 0;
+        return sanity;
     }
 
-    outlier = 0;
-    //TODO: dump this ugly computation and use timestamp info instead
-    //measTurns_float = counterDiff/(float)txCounterPeriod;
-    //measTurns_int = (int)(measTurns_float + 0.5f);
-    //if (measTurns_int){
-    //    cDiff = counterDiff/measTurns_int; //FLOORED VALUE!
-    //}else{
-    //    outlier = 1;
-    //    measTurns_int = 1; //just so that we don't divide by 0 in the next line
-    //}
-    cDiff = counterDiff/turns; //FLOORED VALUE!
-    res = counterDiff - (cDiff*turns); //residual
-    if (res < outlierThreshold && outlier == 0){
-        /*Fill buffer with value(s). If packets have been skipped,
-         *distribute values equally across buffer entries (no rounding)*/
-        for (i = turns; i > 0; i--){
-            thisVal = counterDiff/i;
+    sanityThresh = txCounterPeriod >> 10; //txCounterPeriod / 1024
+    v1 = edgeCount/turns;
+
+    if (v1 > txCounterPeriod){
+        dist = v1 - txCounterPeriod;
+    }else{
+        dist = txCounterPeriod - v1;
+    }
+
+    if (dist < sanityThresh){
+        sanity = 1;
+    }
+
+    return sanity;
+}
+
+int measureFrequency(UINT32 edgeCount, INT32 *buf,
+                     INT32 *pBufSum, UINT32 turns, INT32 *pError)
+{
+    UINT32 thisVal;
+    UINT32 i;
+    INT32  indivError;
+    static BOOL bufferFull = FALSE;
+    static unsigned int bfIdx=0;
+    int ret;
+    static int tmpDebug = 0;
+
+    
+    /*Fill buffer with value(s). If packets have been skipped,
+     *distribute values equally across buffer entries (no rounding)*/
+    for (i = turns; i > 0; i--){
+            thisVal = edgeCount/i;
             indivError = (INT32)(thisVal - txCounterPeriod); //fill buffer with individual errors
 
             //DEBUG
@@ -108,16 +109,14 @@ int measureFrequency(unsigned int cntrVal, unsigned int cntrValOld,
                 bufferFull = fillBuffer(indivError, pBufSum, buf, &bfIdx);
                 *pError = *pBufSum;
                 ret = 0; //not yet full
+                //tmpDebug++;
+                //if (tmpDebug == 200){
+                //    tmpDebug = 0;
+                //}
             }
-            counterDiff -= thisVal;
-       }
+            edgeCount -= thisVal;
+    }
        
-
-   }else{ //outlier!
-        ret = -1; //outlier
-        outlier = 0;
-   }
-
    return ret;
 }
 
