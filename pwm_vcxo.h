@@ -12,8 +12,10 @@
 extern "C" {
 #endif
 
+#define PMW_FREQUENCY   100
 
-int setupPWM(void);
+int setupPWM(unsigned int fpb);
+int updateDutyCycle(UINT32 dutyCycle);
 int setupEdgeCount(void);
 
 

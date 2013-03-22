@@ -79,7 +79,7 @@ int main(void) {
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-    setupPWM(); //TODO 32 bit mode          //PWM (VCXO CONTROL)
+    setupPWM(pbclockfreq); //TODO 32 bit mode          //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
     setupADF();                             //ADF7023
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
