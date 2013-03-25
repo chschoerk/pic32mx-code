@@ -33,6 +33,7 @@ int sanityCheck(UINT32 edgeCount, UINT32 turns);
 INT32 anotherFilter(INT32 input);
 int measureFrequency(UINT32 edgeCount, INT32 *buf,
                      INT32 *pBufSum, UINT32 turns, INT32 *pError);
+INT32 PID(INT32 error);
 
 
 #ifdef	__cplusplus

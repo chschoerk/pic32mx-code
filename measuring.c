@@ -120,6 +120,28 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
    return ret;
 }
 
+INT32 PID(INT32 error)
+{
+    static INT32 errorOld=0;
+    static INT32 dError = 0;
+    static INT32 iError = 0;
+
+    INT32 Kd, Ki, Kd;
+
+    INT32 out = 0;
+
+    dError = error - errorOld;
+    errorOld = error;
+
+    iError += error;
+
+    /*controll equation*/
+    out = Kd*error + Ki*iError + Kd*dError;
+
+    return out;
+}
+
+
 INT32 anotherFilter(INT32 input)
 {
     INT32 output = 0;

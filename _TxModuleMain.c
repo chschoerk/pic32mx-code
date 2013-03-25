@@ -113,7 +113,8 @@ int main(void) {
                     updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (ret > 0){
-                        ret = 10; //dummy
+                        out = PID(fDeviation); //limiten nicht vergessen
+                        regVal = ControlOut2PWMRegValue(out);
                         //fDeviation = anotherFilter(fDeviation); //or control loop (PID-Regler)
                         
                         //TODO: set status to synced
