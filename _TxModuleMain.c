@@ -72,21 +72,39 @@ int main(void) {
     INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
 
     /*---PINMUXING (SWITCHING)---------------------------------------*/
-    SwitchOffSport(); //remove with new HW
     pinMux01();
-    SwitchADFSpi2Spi1(); //remove with new HW
+
+    mPORTBClearBits(BIT_13); //disable AND
+    mPORTBClearBits(BIT_6); //disable BUFFER
+    i = 10000;
+    while(i--);
+    //mPORTBSetBits(BIT_13); //enable AND
+    mPORTBSetBits(BIT_6); //enable buffer
+    mPORTAClearBits(BIT_1); //set CNTL_COUNTER low (running)
+
 
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-    setupPWM(pbclockfreq); //TODO 32 bit mode          //PWM (VCXO CONTROL)
+    setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
     setupADF();                             //ADF7023
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
     setupDetectInterrupt();                 //PREAMBEL DETECTED IRQ
 
     /*---ENABLE INTERRUPTS------------------------------------------*/
-    INTEnableInterrupts(); 
+    INTEnableInterrupts();
+
+
+    /*temp
+    mPORTCSetBits(BIT_5);
+    mPORTAClearBits(BIT_9);
+    while(1){
+        mPORTCToggleBits(BIT_5);
+        mPORTAToggleBits(BIT_9);
+        i = 1000000;
+        while(i--);
+    }*/
 
 
     /*---LOOP-------------------------------------------------------*/
@@ -94,7 +112,7 @@ int main(void) {
     timeStampIncrement = (UINT32)((T1TURNS*T1PR) / (12288000/48000));
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
-    while(1){        
+    while(1){
         if (rxDetected){
             
             if (skippedFirst){
@@ -113,9 +131,10 @@ int main(void) {
                     updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (ret > 0){
-                        out = PID(fDeviation); //limiten nicht vergessen
-                        regVal = ControlOut2PWMRegValue(out);
-                        //fDeviation = anotherFilter(fDeviation); //or control loop (PID-Regler)
+                        //fDeviation = anotherFilter(fDeviation); //low pass TODO  -> maybe moving average with ringbuffer 2^x
+                        //out = PID(fDeviation); //limiten nicht vergessen
+                        //regVal = ControlOut2PWMRegValue(out);
+                        
                         
                         //TODO: set status to synced
                         //TODO: compute PWM register value
@@ -176,7 +195,7 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
 void __ISR(_TIMER_1_VECTOR, ipl1) T1Interrupt()
 {
    counterOverflow++;
-   mPORTBToggleBits(BIT_2);
+   mPORTBToggleBits(BIT_10); //PIN 8
    mT1ClearIntFlag();
 }
 

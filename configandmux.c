@@ -10,10 +10,10 @@ void pinMux01 (void)
 {
     /*SPI1:*/
     PORTSetPinsDigitalIn(IOPORT_B, BIT_14);    //SCK1
-    //PORTSetPinsDigitalOut(IOPORT_B, BIT_14);    //SCK1
     PORTSetPinsDigitalIn(IOPORT_C, BIT_8);      //SDI1
     PORTSetPinsDigitalOut(IOPORT_C, BIT_6);     //SDO1
-    PORTSetPinsDigitalIn(IOPORT_B, BIT_3);      //SS1, test, usually do not need
+    //PORTSetPinsDigitalIn(IOPORT_B, BIT_3);      //SS1, test, usually do not need
+    PORTSetPinsDigitalOut(IOPORT_C, BIT_7);    //CS_ADF (SPI)
 
     /*SPI2 (I2S):*/
     PORTSetPinsDigitalIn(IOPORT_B, BIT_15);     //SCK2
@@ -22,44 +22,43 @@ void pinMux01 (void)
     PORTSetPinsDigitalOut(IOPORT_B, BIT_5);     //SDO2
 
 
-    /*SPI alternative*/
-    PORTSetPinsDigitalOut(IOPORT_C, BIT_0);    //SCK_alt
+    /*SPI Beaglebone (bitbang)*/
+    PORTSetPinsDigitalOut(IOPORT_C, BIT_0);     //SCK_BB
     PORTSetPinsDigitalIn(IOPORT_C, BIT_2);      //SDI_alt
-    PORTSetPinsDigitalOut(IOPORT_C, BIT_1);     //SDO_alt
+    PORTSetPinsDigitalOut(IOPORT_C, BIT_1);     //SDO_BB
+    PORTSetPinsDigitalIn(IOPORT_B, BIT_8);      //CS_BB_IRQ
 
-    /*CHIP SELECTS, SWITCHES*/
-    PORTSetPinsDigitalOut(IOPORT_C, BIT_7);    //CS_ADF (SPI)
-    PORTSetPinsDigitalOut(IOPORT_C, BIT_5);    //CS_ADF (SPORT)
-    //PORTSetPinsDigitalOut(IOPORT_B, BIT_7);    //CS_Si5326
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_9);    //SEL_SPI (ADF SPI <-> SPI1 or SPIalt (bitbanging))
-    
-    /*RESETS*/
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_8);    //Reset Si5326
-    
+ 
     /*INTERRUPT LINES*/
-    PORTSetPinsDigitalIn(IOPORT_C, BIT_9);      //IRQ_ADF
+    PORTSetPinsDigitalIn(IOPORT_C, BIT_9);      //IRQ_GP3
 
     /*COUNTER (TIMER1)*/
     PORTSetPinsDigitalIn(IOPORT_A, BIT_4);      //T1CK
 
-    /*Test Output Pin*/
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_2);
-    //PORTSetPinsDigitalOut(IOPORT_B, BIT_13);    //PIC_CLK_OUT
+    /*CONTROL SWITCHES*/
     PORTSetPinsDigitalOut(IOPORT_B, BIT_13);    //CNTL_AND_A
     PORTSetPinsDigitalOut(IOPORT_A, BIT_1);    //CNTL_COUNTER
     PORTSetPinsDigitalOut(IOPORT_B, BIT_6);    //CNTL_BUFFER
 
+    /*LEDS*/
+    PORTSetPinsDigitalOut(IOPORT_C, BIT_5);     //LED 1
+    PORTSetPinsDigitalOut(IOPORT_A, BIT_9);     //LED 2
+
 
     /*PWM (Output Compare OC1*/
-    //PORTSetPinsDigitalOut(IOPORT_B, BIT_3);     //OC1
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_7);    //CS_Si5326
+    PORTSetPinsDigitalOut(IOPORT_B, BIT_7);    //PWM-OUT
 
     /*I2C (SMBus)*/
     PORTSetPinsDigitalOut(IOPORT_B, BIT_3);     //SCL2 (pin 24)
     PORTSetPinsDigitalOut(IOPORT_B, BIT_2);     //SDA2 (pin 23)
 
+    /*TESTPINS*/
+     PORTSetPinsDigitalOut(IOPORT_B, BIT_10); //PIN 8
+     PORTSetPinsDigitalOut(IOPORT_B, BIT_11); //PIN 9
+
     /*PPS*/
      PPSUnLock;
+
       /*SPI1:*/
       PPSInput(2, SDI1, RPC8);
       PPSOutput(3, RPC6, SDO1);
@@ -71,10 +70,9 @@ void pinMux01 (void)
       PPSInput(4, SS2, RPC4);  //frame clock
 
       /*IRQ*/
-      PPSInput(4,INT1,RPC9);
+      PPSInput(4,INT1,RPC9); //IRQ_GP3
 
       /*PWM (OC1)*/
-      //PPSOutput(1, RPB3, OC1);
       PPSOutput(1, RPB7, OC1);
 
      PPSLock;

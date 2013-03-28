@@ -22,6 +22,12 @@ extern "C" {
                                  //caution: largest number on PIC32: 2^32. if buffer is to long the elapsed time between two points is larger than 2^32.
                                  //TMEAS_BUFFER_SIZE GOT TO BE 2^X!
 //#define BUF_SUM_REF         (TX_COUNTER_PERIOD * TMEAS_BUFFER_SIZE)
+#define LIM_INT 0
+
+#define SCAL 13 //2^13    //DAS MUSS WAHRSCHEINLIHC 12 sein!!!
+#define KI 82 // 0.01*2^13 (siehe matlab script)
+#define KP 3277 //0.4*2^13
+#define KD 0
 
 
 
@@ -34,6 +40,8 @@ INT32 anotherFilter(INT32 input);
 int measureFrequency(UINT32 edgeCount, INT32 *buf,
                      INT32 *pBufSum, UINT32 turns, INT32 *pError);
 INT32 PID(INT32 error);
+int limitUnsigned(UINT32 *in, UINT32 lim);
+int limitSigned(INT32 *in, INT32 lim);
 
 
 #ifdef	__cplusplus

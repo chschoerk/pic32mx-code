@@ -58,7 +58,7 @@
         <targetDevice>PIC32MX130F064D</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>ICD3PlatformTool</platformTool>
+        <platformTool>PICkit3PlatformTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>1.11</languageToolchainVersion>
         <platform>3</platform>

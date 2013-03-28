@@ -110,7 +110,7 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
                 *pError = *pBufSum;
                 ret = 0; //not yet full
                 //tmpDebug++;
-                //if (tmpDebug == 200){
+                //if (tmpDebug == 100){
                 //    tmpDebug = 0;
                 //}
             }
@@ -120,25 +120,80 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
    return ret;
 }
 
+int limitSigned(INT32 *in, INT32 lim)
+{
+    int ret = 0;
+
+    if ((*in) > (lim-1)){
+        (*in) = lim-1;
+        ret = 1;
+    }else if ((*in) < -lim){
+        (*in) = -lim;
+        ret = -1;
+    }
+
+    return ret;
+}
+
+int limitUnsigned(UINT32 *in, UINT32 lim)
+{
+    int ret = 0;
+
+    if ((*in) > lim){
+        (*in) = lim;
+        ret = 1;
+    }
+
+    return ret;
+}
+
 INT32 PID(INT32 error)
 {
-    static INT32 errorOld=0;
-    static INT32 dError = 0;
-    static INT32 iError = 0;
-
-    INT32 Kd, Ki, Kd;
-
+    INT32 kp, ki, kd;
+    INT32 e;
+    static INT32 eOld = 0;
+    static INT32 x_int = 0;
+    INT32 x_diff = 0;
+    INT32 x_prop = 0;
+    INT32 x = 0;
+    static int sat = 0;
     INT32 out = 0;
 
-    dError = error - errorOld;
-    errorOld = error;
+    e = error;
 
-    iError += error;
+    if ((sat < 0 && e < 0) || (sat > 0 && e > 0)){ //anti-windup
+        /* do nothing if there is saturation, and error is in the same direction;
+         * if you're careful you can implement as "if (sat*e > 0)"
+         */
+    }else{
 
-    /*controll equation*/
-    out = Kd*error + Ki*iError + Kd*dError;
+        e = limitSigned(&e, 1<<18); //limit to 19 bit signed
 
-    return out;
+
+
+        /*integral part*/
+        x_int = x_int + KI*e;
+        sat = limitSigned(&x_int, LIM_INT);
+
+        /*differental part*/
+        x_diff = e - eOld;
+        limitSigned(&x_diff, LIM_INT);
+        x_diff *= kd;
+        x_diff = x_diff >> 12;
+        limitSigned(&x_diff, LIM_INT);
+
+        /*proportional part*/
+        x_prop = kp * e;
+        limitSigned(&x_prop, LIM_INT);
+
+        /*controller equation*/
+        x = x_prop + x_int + x_diff;
+        //limitUnsigned(x, 399999); //pr2 = (UINT32)((fpb/(PMW_FREQUENCY*prescalar)) - 1); (vgl. setupEdgeCount)
+    }
+
+    eOld = error;
+
+    return 0;
 }
 
 
