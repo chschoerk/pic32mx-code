@@ -18,13 +18,3 @@ void switch2ClockAnd()
     mPORTBSetBits(BIT_13); //enable AND
 
 }
-
-void switchOnCounter()
-{
-    mPORTAClearBits(BIT_1); //set CNTL_COUNTER low (running)
-}
-
-void switchOffCounter()
-{
-    mPORTASetBits(BIT_1); //set CNTL_COUNTER high (not running)
-}

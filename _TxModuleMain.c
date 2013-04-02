@@ -75,10 +75,11 @@ int main(void) {
     pinMux01();
 
     /*---SWITCHING---------------------------------------------------*/
-    switch2ClockAnd();
-    switchOnCounter();
-
-
+    turnOffLED1;
+    turnOffLED2;
+    switchOnCounter; //enable clock division
+    switch2ClockAnd(); //use AND Gatter instead of clock buffer
+    
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
@@ -90,18 +91,6 @@ int main(void) {
 
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts();
-
-
-    /*temp
-    mPORTCSetBits(BIT_5);
-    mPORTAClearBits(BIT_9);
-    while(1){
-        mPORTCToggleBits(BIT_5);
-        mPORTAToggleBits(BIT_9);
-        i = 1000000;
-        while(i--);
-    }*/
-
 
     /*---LOOP-------------------------------------------------------*/
     //stallRecover = 0;
