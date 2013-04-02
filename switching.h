@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 
-void SwitchADFSpi2Spi1();
-void SwitchADFSpi2SpiAlt();
-void SwitchOnSport();
-
+void switch2ClockBuffer();
+void switch2ClockAnd();
+void switchOnCounter();
+void switchOffCounter();
 
 #ifdef	__cplusplus
 }

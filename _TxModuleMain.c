@@ -74,13 +74,9 @@ int main(void) {
     /*---PINMUXING (SWITCHING)---------------------------------------*/
     pinMux01();
 
-    mPORTBClearBits(BIT_13); //disable AND
-    mPORTBClearBits(BIT_6); //disable BUFFER
-    i = 10000;
-    while(i--);
-    //mPORTBSetBits(BIT_13); //enable AND
-    mPORTBSetBits(BIT_6); //enable buffer
-    mPORTAClearBits(BIT_1); //set CNTL_COUNTER low (running)
+    /*---SWITCHING---------------------------------------------------*/
+    switch2ClockAnd();
+    switchOnCounter();
 
 
     /*---SETUP------------------------------------------------------*/

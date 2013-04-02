@@ -92,8 +92,8 @@
       </C32CPP>
       <C32Global>
       </C32Global>
-      <ICD3PlatformTool>
-      </ICD3PlatformTool>
+      <PICkit3PlatformTool>
+      </PICkit3PlatformTool>
     </conf>
     <conf name="C32_PIC32MX795F512L" type="2">
       <toolsSet>
