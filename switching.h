@@ -13,11 +13,6 @@ extern "C" {
 #endif
 
 
-    void turnOnLED1()
-{
-    mPORTCSetBits(BIT_5);
-}
-
 #define     turnOnLED1          (mPORTCSetBits(BIT_5))
 #define     turnOffLED1         (mPORTCClearBits(BIT_5))
 #define     toggleLED1          (mPORTCToggleBits(BIT_5))

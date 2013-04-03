@@ -78,14 +78,17 @@ int main(void) {
     turnOffLED1;
     turnOffLED2;
     switchOnCounter; //enable clock division
-    switch2ClockAnd(); //use AND Gatter instead of clock buffer
+    switch2ClockAnd(); //use buffer instead of AND
     
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
     setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
+    turnOnLED1;
+    turnOnLED2;
     setupADF();                             //ADF7023
+    turnOffLED1;
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
     setupDetectInterrupt();                 //PREAMBEL DETECTED IRQ
 
@@ -97,9 +100,11 @@ int main(void) {
     timeStampIncrement = (UINT32)((T1TURNS*T1PR) / (12288000/48000));
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
+    turnOffLED2;
     while(1){
+        
         if (rxDetected){
-            
+            toggleLED2;
             if (skippedFirst){
 
                 i = 10000;
@@ -113,7 +118,7 @@ int main(void) {
                 sane = sanityCheck(edgeCount, turns);
               
                 if (sane){
-                    updateTimestamp(ts);
+                    //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (ret > 0){
                         //fDeviation = anotherFilter(fDeviation); //low pass TODO  -> maybe moving average with ringbuffer 2^x
@@ -180,7 +185,7 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
 void __ISR(_TIMER_1_VECTOR, ipl1) T1Interrupt()
 {
    counterOverflow++;
-   mPORTBToggleBits(BIT_10); //PIN 8
+   //mPORTBToggleBits(BIT_10); //PIN 8
    mT1ClearIntFlag();
 }
 

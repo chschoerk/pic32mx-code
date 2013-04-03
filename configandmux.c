@@ -84,8 +84,13 @@ void SPI1_configMaster(void)
     UINT spi_con1 = 0;
     UINT spi_con2 = 0;
 
-    spi_con1 =  SPI_OPEN_MSTEN  |   //set master mode
-                SPI_OPEN_MODE8  |   //8 bit mode
+    spi_con1 =  SPI_OPEN_MSTEN    |   //set master mode
+                SPI_OPEN_MODE8    |   //8 bit mode
+                //SPI_OPEN_CKP_HIGH |   //clock polarity: idle = HI, active = LO
+                //--> commented out = idle LO, active HI
+                SPI_OPEN_CKE_REV  |   //transmit from active clock to idle clock (--> transmit on falling clock edge if clock idle is LO)
+                //SPI_OPEN_SMP_END  |   //input sampled at end of data output time
+                //--> commented out => sample MISO at middle of data output time
                 0;
 
     spi_con2 =  0;
