@@ -120,15 +120,15 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
    return ret;
 }
 
-int limitSigned(INT32 *in, INT32 lim)
+int limitSigned(INT32 *in, INT32 plim, INT32 nlim)
 {
     int ret = 0;
 
-    if ((*in) > (lim-1)){
-        (*in) = lim-1;
+    if ((*in) > plim){
+        (*in) = plim;
         ret = 1;
-    }else if ((*in) < -lim){
-        (*in) = -lim;
+    }else if ((*in) < nlim){
+        (*in) = nlim;
         ret = -1;
     }
 
@@ -147,53 +147,83 @@ int limitUnsigned(UINT32 *in, UINT32 lim)
     return ret;
 }
 
-INT32 PID(INT32 error)
+INT32 secureAdd_INT32(INT32 a, INT32 b)
 {
-    INT32 kp, ki, kd;
+    INT32 max = 0x7fffffff;
+    INT32 min = -max-1;
+
+    if (a < 0 && b < 0){
+        if ( (min-a) > -b ){
+            return (a+b);
+        }else{
+            return min;
+        }
+
+    }else if (a > 0 && b > 0){
+        if ( (max-a) > b){
+            return (a+b);
+        }else{
+            return max;
+        }
+
+    }else{
+        return (a+b);
+    }
+
+}
+
+INT32 PID(INT32 error, UINT32 maxPWMval)
+{
     INT32 e;
     static INT32 eOld = 0;
     static INT32 x_int = 0;
+    static int sat = 0;
     INT32 x_diff = 0;
     INT32 x_prop = 0;
     INT32 x = 0;
-    static int sat = 0;
-    INT32 out = 0;
+   
+    INT32 plimS19 = (1<<18)-1;
+    INT32 nlimS19 =  -(1<<18);
 
     e = error;
 
-    if ((sat < 0 && e < 0) || (sat > 0 && e > 0)){ //anti-windup
+    if (0){
+    //if ((sat < 0 && e < 0) || (sat > 0 && e > 0)){ //anti-windup
         /* do nothing if there is saturation, and error is in the same direction;
          * if you're careful you can implement as "if (sat*e > 0)"
          */
+        //return -1;
     }else{
 
-        e = limitSigned(&e, 1<<18); //limit to 19 bit signed
-
-
+        limitSigned(&e, plimS19, nlimS19); //limit to 19 bit signed
 
         /*integral part*/
-        x_int = x_int + KI*e;
-        sat = limitSigned(&x_int, LIM_INT);
+        if (sat == 0){
+            x_int = secureAdd_INT32(x_int, KI*e);  //x_int = x_int + KI*e;
+        }
+        //sat = limitSigned(&x_int, plimS19, nlimS19);
 
-        /*differental part*/
-        x_diff = e - eOld;
-        limitSigned(&x_diff, LIM_INT);
-        x_diff *= kd;
+        /*differental part
+        x_diff = e - eOld; //need security?
+        limitSigned(&x_diff, plimS19, nlimS19);
+        x_diff *= KD;
         x_diff = x_diff >> 12;
-        limitSigned(&x_diff, LIM_INT);
+        limitSigned(&x_diff, plimS19, nlimS19);
+        */
 
         /*proportional part*/
-        x_prop = kp * e;
-        limitSigned(&x_prop, LIM_INT);
+        x_prop = KP * e; //e is limited to signed 19 bit, if KP is < 8192 no problem
+        limitSigned(&x_prop, plimS19, nlimS19);
 
         /*controller equation*/
-        x = x_prop + x_int + x_diff;
-        //limitUnsigned(x, 399999); //pr2 = (UINT32)((fpb/(PMW_FREQUENCY*prescalar)) - 1); (vgl. setupEdgeCount)
+        x = (x_prop>>SCAL) + (x_int>>SCAL) + x_diff;
+        sat = limitSigned(&x, maxPWMval, 0); //pr2 = (UINT32)((fpb/(PMW_FREQUENCY*prescalar)) - 1); (vgl. setupEdgeCount)
+
+        eOld = e;
+
+        return x;
     }
-
-    eOld = error;
-
-    return 0;
+    
 }
 
 

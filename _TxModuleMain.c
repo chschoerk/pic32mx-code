@@ -60,6 +60,13 @@ int main(void) {
     int sane;
     int ret;
     int i;
+    float pwmUpdate;
+    UINT32 pwmValCurrent;
+    INT32 out;
+
+    INT32 tmpArr1[200];
+    INT32 tmpArr2[200];
+    int tmpIdx = 0;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -83,7 +90,7 @@ int main(void) {
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-    setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
+    pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
     turnOnLED1;
     turnOnLED2;
@@ -120,16 +127,42 @@ int main(void) {
                 if (sane){
                     //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
+                    //if (ret > 0){
+                        turnOnLED1;
+                        out = PID(-fDeviation, 399999);
+
+                        tmpArr1[tmpIdx] = out;
+                        tmpArr2[tmpIdx] = fDeviation;
+                        tmpIdx++;
+                        if (tmpIdx==200){
+                            tmpIdx = 0;
+                        }
+
+                        if (out >= 0){
+                            SetDCOC1PWM(out);
+                        }
+                    //}
+                    /*
                     if (ret > 0){
+                        turnOnLED1;
+                        pwmUpdate = (float)fDeviation/(float)2013.135;
+                        pwmUpdate = pwmUpdate * 2222.22;
+                        pwmValCurrent -= (UINT32)(pwmUpdate/2);
+                        SetDCOC1PWM(pwmValCurrent);
+                        while(1){
+                            ret = 1;
+                        }
+
                         //fDeviation = anotherFilter(fDeviation); //low pass TODO  -> maybe moving average with ringbuffer 2^x
                         //out = PID(fDeviation); //limiten nicht vergessen
                         //regVal = ControlOut2PWMRegValue(out);
+
                         
                         
                         //TODO: set status to synced
                         //TODO: compute PWM register value
                         //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
-                    }
+                    }*/
                 }
 
             }else{ //if(skippedFirst)

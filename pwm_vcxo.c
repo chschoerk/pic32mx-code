@@ -9,7 +9,7 @@
 /*
  * setupPWM
  */
-int setupPWM(unsigned int fpb)
+UINT32 setupPWM(unsigned int fpb)
 {
     UINT32 pr2;
     unsigned int prescalar = 1;
@@ -24,7 +24,7 @@ int setupPWM(unsigned int fpb)
     OpenOC1( OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE | OC_TIMER_MODE32, 0, 0);
     OpenTimer2( T2_ON | T2_PS_1_1 | T2_SOURCE_INT | T2_32BIT_MODE_ON, pr2);
     SetDCOC1PWM(pr2/2); //50% duty cycle for starters
-    return 0;
+    return (pr2/2);
 }
 
 int updateDutyCycle(UINT32 dutyCycle)
