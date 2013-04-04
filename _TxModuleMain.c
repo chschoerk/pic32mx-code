@@ -20,14 +20,16 @@
 #include "_TxModuleMain.h"
 
 
-#define tPREAMBEL_LEN       32  //byte
-#define tPREAMBEL           0x55
-#define tSYNCBYTE0          0x33
-#define tSYNCBYTE1          0x33
-#define tSYNCBYTE2          0xA6
-#define tPAYLOADLEN         32   //240 //byte
+#define tPREAMBEL_LEN        32  //byte
+#define tPREAMBEL            0x55
+#define tSYNCBYTE0           0x33
+#define tSYNCBYTE1           0x33
+#define tSYNCBYTE2           0xA6
+#define tPAYLOADLEN          32   //240 //byte
 
-#define VCO_FREQ            12288000
+#define VCO_FREQ             12288000
+#define CNT_HIST_BUFFER_SIZE 32 //size of ringbuffer that keeps track of PID controller output history
+#define CNT_STOP_THRESH      20 //if this many sign changes occur within the last CNT_HIST_BUFFER_SIZE PID outputs, stop the control loop
 
 
 volatile BOOL rxDetected;
@@ -60,12 +62,18 @@ int main(void) {
     int sane;
     int ret;
     int i;
-    float pwmUpdate;
     UINT32 pwmValCurrent;
     INT32 out;
+    INT32 outOld;
+    int controllerHistory[CNT_HIST_BUFFER_SIZE] = { 0 };
+    int cntHistIdx = 0;
+    int controllerOn = 1;
+    INT32 fDevBufSum = 0;
+    UINT16 outSignChanges = 0;
 
-    INT32 tmpArr1[200];
-    INT32 tmpArr2[200];
+    //int tmpArrSize = CNT_HIST_BUFFER_SIZE;
+    INT32 tmpArr1[CNT_HIST_BUFFER_SIZE] = { 0 };
+    INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
     int tmpIdx = 0;
 
     counterOverflow = 0;
@@ -128,18 +136,45 @@ int main(void) {
                     //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     //if (ret > 0){
-                        turnOnLED1;
-                        out = PID(-fDeviation, 399999);
+                        out = PID(-fDeviation, 0, 399999); //max: 0 - 399999´
+                        if (out >= 0 && controllerOn == 1){
+                            SetDCOC1PWM(out);
+                        }
 
+                        /*controller history ringbuffer*/
+
+                        //das zählt nicht die sign changes...anders machen!
+                        fDevBufSum -= controllerHistory[cntHistIdx];
+                        if ( (out - outOld) > 0 ){ 
+                            controllerHistory[cntHistIdx] = 1;  //positive control slope
+                        }else if ( (out - outOld) < 0 ){
+                            controllerHistory[cntHistIdx] = -1; //negative control slope
+                        }else{
+                            controllerHistory[cntHistIdx] = 0;  //zero control slope
+                        }
+                        fDevBufSum += controllerHistory[cntHistIdx];
+                        if (fDevBufSum < 0){
+                            outSignChanges = CNT_HIST_BUFFER_SIZE + fDevBufSum;
+                        }else{
+                            outSignChanges = CNT_HIST_BUFFER_SIZE - fDevBufSum;
+                        }
+
+                        if (outSignChanges > CNT_STOP_THRESH && ret > 0){
+                            turnOnLED1;
+                            controllerOn = 0;
+                        }
+
+                        outOld = out;                                                
+                        cntHistIdx++;
+                        cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
+
+                       
+                        /*DEBUG*/
                         tmpArr1[tmpIdx] = out;
                         tmpArr2[tmpIdx] = fDeviation;
                         tmpIdx++;
-                        if (tmpIdx==200){
+                        if (tmpIdx == CNT_HIST_BUFFER_SIZE){
                             tmpIdx = 0;
-                        }
-
-                        if (out >= 0){
-                            SetDCOC1PWM(out);
                         }
                     //}
                     /*

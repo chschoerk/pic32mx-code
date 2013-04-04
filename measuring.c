@@ -107,6 +107,15 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
                 ret = 1;
             }else{
                 bufferFull = fillBuffer(indivError, pBufSum, buf, &bfIdx);
+                /*TRY: return an estimated error, as if the buffer was already full*/
+                /*
+                if (bfIdx > 0){ 
+                    *pError = TMEAS_BUFFER_SIZE * (*pBufSum); //TODO secure this operation (OVERFLOW!)
+                    *pError = *pError / bfIdx;
+                } else {
+                    *pError = *pBufSum;
+                }*/
+                        
                 *pError = *pBufSum;
                 ret = 0; //not yet full
                 //tmpDebug++;
@@ -172,7 +181,7 @@ INT32 secureAdd_INT32(INT32 a, INT32 b)
 
 }
 
-INT32 PID(INT32 error, UINT32 maxPWMval)
+INT32 PID(INT32 error, UINT32 minPWMval, UINT32 maxPWMval)
 {
     INT32 e;
     static INT32 eOld = 0;
@@ -217,7 +226,11 @@ INT32 PID(INT32 error, UINT32 maxPWMval)
 
         /*controller equation*/
         x = (x_prop>>SCAL) + (x_int>>SCAL) + x_diff;
-        sat = limitSigned(&x, maxPWMval, 0); //pr2 = (UINT32)((fpb/(PMW_FREQUENCY*prescalar)) - 1); (vgl. setupEdgeCount)
+
+        /*scale to output (pwm) format [signed to unsigned]*/
+        x += ( (maxPWMval-minPWMval) >>1 );
+
+        sat = limitSigned(&x, maxPWMval, minPWMval); //pr2 = (UINT32)((fpb/(PMW_FREQUENCY*prescalar)) - 1); (vgl. setupEdgeCount)
 
         eOld = e;
 
