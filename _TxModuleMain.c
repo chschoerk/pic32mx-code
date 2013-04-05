@@ -28,9 +28,10 @@
 #define tPAYLOADLEN          32   //240 //byte
 
 #define VCO_FREQ             12288000
-#define CNT_HIST_BUFFER_SIZE 32 //size of ringbuffer that keeps track of PID controller output history
-#define CNT_STOP_THRESH      20 //if this many sign changes occur within the last CNT_HIST_BUFFER_SIZE PID outputs, stop the control loop
-
+#define CNT_HIST_BUFFER_SIZE 256 //size of ringbuffer that keeps track of PID controller output history
+#define CNT_STOP_THRESH      20
+#define CNT_STOP_SIGN_TRESH  40
+#define BOUNCE_TRESH         50
 
 volatile BOOL rxDetected;
 volatile unsigned int counterValue = 0;
@@ -64,13 +65,18 @@ int main(void) {
     int i;
     UINT32 pwmValCurrent;
     INT32 out;
-    INT32 outOld;
-    int controllerHistory[CNT_HIST_BUFFER_SIZE] = { 0 };
+    UINT32 cntHist[CNT_HIST_BUFFER_SIZE] = { 0 };
+    //UINT8 signHist[CNT_HIST_BUFFER_SIZE] = { 0 };
+    INT8 devSign = 0;
+    //INT16 signOff = 0;
+    UINT32 cntHistBufSum = 0;
     int cntHistIdx = 0;
+    //INT16 errorSignBufSum = 0;
+    int x0, xm1, xm2;
     int controllerOn = 1;
-    INT32 fDevBufSum = 0;
-    UINT16 outSignChanges = 0;
-
+    //UINT16 outSignChanges = 0;
+    INT16 outOfBounceCount = 0;
+    INT32 thisDeviationAbs = 0;
     //int tmpArrSize = CNT_HIST_BUFFER_SIZE;
     INT32 tmpArr1[CNT_HIST_BUFFER_SIZE] = { 0 };
     INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
@@ -135,48 +141,85 @@ int main(void) {
                 if (sane){
                     //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
-                    //if (ret > 0){
+                    if (controllerOn == 1){
                         out = PID(-fDeviation, 0, 399999); //max: 0 - 399999´
                         if (out >= 0 && controllerOn == 1){
                             SetDCOC1PWM(out);
                         }
 
                         /*controller history ringbuffer*/
+                        cntHistBufSum = cntHistBufSum - cntHist[cntHistIdx] + out;
+                        cntHist[cntHistIdx] = out;
 
-                        //das zählt nicht die sign changes...anders machen!
-                        fDevBufSum -= controllerHistory[cntHistIdx];
-                        if ( (out - outOld) > 0 ){ 
-                            controllerHistory[cntHistIdx] = 1;  //positive control slope
-                        }else if ( (out - outOld) < 0 ){
-                            controllerHistory[cntHistIdx] = -1; //negative control slope
+                        /*
+                        x0 = cntHistIdx;
+                        xm1 = x0 - 1;
+                        xm1 &= (CNT_HIST_BUFFER_SIZE-1); //mask out top bits (wrap index)
+                        xm2 = x0 - 2;
+                        xm2 &= (CNT_HIST_BUFFER_SIZE-1); //mask out top bits (wrap index)
+                        */
+                        
+                        /*check if values right and left of x0 are both lower or higher - if so we have a sign change*/
+                        /*if  (  ((UINT32)(cntHist[xm1] - cntHist[xm2]) >> 31) ^ ((UINT32)(cntHist[xm1] - cntHist[x0]) >> 31) ){
+                            outSignChanges = outSignChanges - signHist[cntHistIdx] + 0;
+                            signHist[cntHistIdx] = 0; //no sign change
                         }else{
-                            controllerHistory[cntHistIdx] = 0;  //zero control slope
-                        }
-                        fDevBufSum += controllerHistory[cntHistIdx];
-                        if (fDevBufSum < 0){
-                            outSignChanges = CNT_HIST_BUFFER_SIZE + fDevBufSum;
-                        }else{
-                            outSignChanges = CNT_HIST_BUFFER_SIZE - fDevBufSum;
+                            outSignChanges = outSignChanges - signHist[cntHistIdx] + 1;
+                            signHist[cntHistIdx] = 1; //sign change    
                         }
 
                         if (outSignChanges > CNT_STOP_THRESH && ret > 0){
                             turnOnLED1;
+                            out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
+                            SetDCOC1PWM(out);
+                            controllerOn = 0;
+                        }*/
+
+                        /*sodala, jetz aba*/
+                        if (tmpArr1[cntHistIdx] > BOUNCE_TRESH){
+                            outOfBounceCount--;
+                        }
+                        devSign = ( (fDeviation > 0) - (fDeviation < 0) );
+                        thisDeviationAbs = devSign * fDeviation;
+                        if (thisDeviationAbs > BOUNCE_TRESH){
+                            outOfBounceCount++;
+                        }
+                        tmpArr1[cntHistIdx] = thisDeviationAbs;
+
+                             
+                        /*count positive and negative frequency errors*/
+                        /*
+                        devSign = ( (fDeviation > 0) - (fDeviation < 0) );
+                        errorSignBufSum = errorSignBufSum - tmpArr1[cntHistIdx] + devSign;
+                        tmpArr1[cntHistIdx] = devSign;
+                        if (errorSignBufSum < 0){
+                            signOff = -errorSignBufSum;
+                        }else{
+                            signOff = errorSignBufSum;
+                        }
+                        */
+
+                        tmpArr2[cntHistIdx] = fDeviation;
+
+
+                        /*check if we can stop controlling*/
+                        //if (signOff < CNT_STOP_SIGN_TRESH && outSignChanges > CNT_STOP_THRESH && ret > 0 ){
+                        if (outOfBounceCount < CNT_STOP_THRESH && ret > 0 ){
+                            turnOnLED1;
+                            //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
+                            //SetDCOC1PWM(out);
                             controllerOn = 0;
                         }
 
-                        outOld = out;                                                
                         cntHistIdx++;
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
 
                        
                         /*DEBUG*/
-                        tmpArr1[tmpIdx] = out;
-                        tmpArr2[tmpIdx] = fDeviation;
-                        tmpIdx++;
-                        if (tmpIdx == CNT_HIST_BUFFER_SIZE){
-                            tmpIdx = 0;
-                        }
-                    //}
+                        //tmpArr1[tmpIdx] = out;
+                        //tmpArr2[tmpIdx] = fDeviation;
+
+                    }
                     /*
                     if (ret > 0){
                         turnOnLED1;
