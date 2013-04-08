@@ -37,6 +37,7 @@ volatile BOOL rxDetected;
 volatile unsigned int counterValue = 0;
 volatile unsigned int counterValueOld = 0;
 volatile unsigned int counterOverflow = 0;
+volatile UINT32 counterValue32 = 0;
 
 //volatile int tmpIdx = 0;
 //volatile int tmpSrcPtrArray[10];
@@ -84,6 +85,7 @@ int main(void) {
     int tArIdx = 0;
     int tmpIdx = 0;
 
+
     counterOverflow = 0;
     counterValue = 0;
     counterValueOld = 0;
@@ -120,7 +122,7 @@ int main(void) {
 
     /*---LOOP-------------------------------------------------------*/
     //stallRecover = 0;
-    timeStampIncrement = (UINT32)((T1TURNS*T1PR) / (12288000/48000));
+    timeStampIncrement = (UINT32)(REFEDGES / 256); //245 = (12288000/48000)
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     turnOffLED2;
@@ -136,15 +138,20 @@ int main(void) {
                 ts = readReceivedTimestamp();
                 turns = (ts - tsOld)/timeStampIncrement;
                 tsOld = ts;
-                edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
-
+                //edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
+                if (counterOverflow > 0){
+                    edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32;
+                }else{
+                    edgeCount = counterValue32 - counterValueOld;
+                }
+                tmpArr2[cntHistIdx] = edgeCount;
+                
                 sane = sanityCheck(edgeCount, turns);
-              
                 if (sane){
                     //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (controllerOn == 1){
-                        out = PID(-fDeviation, 0, 399999); //max: 0 - 399999´
+                        out = PID(-fDeviation, 0, 399999); //max: 0 - 399999
                         if (out >= 0 && controllerOn == 1){
                             SetDCOC1PWM(out);
                         }
@@ -201,13 +208,13 @@ int main(void) {
                         }
                         */
 
-                        tmpArr2[cntHistIdx] = fDeviation;
+                        //tmpArr2[cntHistIdx] = fDeviation;
 
 
                         /*check if we can stop controlling*/
                         //if (signOff < CNT_STOP_SIGN_TRESH && outSignChanges > CNT_STOP_THRESH && ret > 0 ){
                         if (outOfBounceCount < CNT_STOP_THRESH && ret > 0 ){
-                            //turnOnLED1;
+                            turnOnLED1;
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
                             controllerOn = 0;
@@ -215,8 +222,8 @@ int main(void) {
 
                         cntHistIdx++;
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
-
                        
+
                         /*DEBUG*/
                         //tmpArr1[tmpIdx] = out;
                         //tmpArr2[tmpIdx] = fDeviation;
@@ -262,7 +269,8 @@ int main(void) {
 
             /*reset counters*/
             counterOverflow = 0;
-            counterValueOld = counterValue;
+            //counterValueOld = counterValue;
+            counterValueOld = counterValue32;
             //rxDetected = FALSE;
 
             /*Clear ADF8023 Interrupt*/
@@ -290,8 +298,11 @@ int main(void) {
 void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
 {
    //read and reset counter value TMR1
+   /*
    while(T1CON & 0x0800); //check T1CON.TWIP and wait until theres no write to TMR1 in progess
    counterValue = TMR1;
+   */
+   counterValue32 = TMR4;
 
    updateDMASourcePointer();
    resetSrcPtrOverruns();
@@ -301,11 +312,21 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
 
 }
 
+/*
 void __ISR(_TIMER_1_VECTOR, ipl1) T1Interrupt()
 {
    counterOverflow++;
    //mPORTBToggleBits(BIT_10); //PIN 8
    mT1ClearIntFlag();
+}
+*/
+
+void __ISR(_TIMER_5_VECTOR, ipl6) T5Interrupt()
+{
+   //counterOverflow++;
+   //mPORTBToggleBits(BIT_10); //PIN 8
+   counterOverflow++;
+   mT5ClearIntFlag();
 }
 
 /*

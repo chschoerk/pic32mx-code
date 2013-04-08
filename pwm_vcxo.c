@@ -34,8 +34,10 @@ int updateDutyCycle(UINT32 dutyCycle)
 
 int setupEdgeCount()
 {
-    OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, T1PR); //no prescalor other than 1_1 work's?!
-    ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
+    //OpenTimer1(T1_ON | T1_SOURCE_EXT | T1_PS_1_1, T1PR); //no prescalor other than 1_1 work's?!
+    //ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_1);
+    OpenTimer45(T45_ON | T45_SOURCE_EXT | T45_PS_1_1, T45PR); //no prescalor other than 1_1 work's?!
+    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_6);
     return 0;
 }
 

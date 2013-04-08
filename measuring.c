@@ -7,8 +7,8 @@
 #include "measuring.h"
 
 
-UINT32 txCounterPeriod = T1TURNS * T1PR;
-
+//UINT32 txCounterPeriod = T1TURNS * T1PR;
+//UINT32 txCounterPeriod = 3931904;
 
 
 int setupDetectInterrupt()
@@ -57,13 +57,13 @@ int sanityCheck(UINT32 edgeCount, UINT32 turns)
         return sanity;
     }
 
-    sanityThresh = txCounterPeriod >> 10; //txCounterPeriod / 1024
+    sanityThresh = REFEDGES >> 10; //REFEDGES / 1024
     v1 = edgeCount/turns;
 
-    if (v1 > txCounterPeriod){
-        dist = v1 - txCounterPeriod;
+    if (v1 > REFEDGES){
+        dist = v1 - REFEDGES;
     }else{
-        dist = txCounterPeriod - v1;
+        dist = REFEDGES - v1;
     }
 
     if (dist < sanityThresh){
@@ -89,12 +89,12 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
      *distribute values equally across buffer entries (no rounding)*/
     for (i = turns; i > 0; i--){
             thisVal = edgeCount/i;
-            indivError = (INT32)(thisVal - txCounterPeriod); //fill buffer with individual errors
+            indivError = (INT32)(thisVal - REFEDGES); //fill buffer with individual errors
 
             //DEBUG
-            if ( (indivError < -2000) || (indivError > 2000) ){
+            /*if ( (indivError < -2000) || (indivError > 2000) ){
                 indivError++;
-            }
+            }*/
 
             if (bufferFull){
                 updateBuffer(indivError, pBufSum, buf, &bfIdx);

@@ -33,7 +33,7 @@ void pinMux01 (void)
     PORTSetPinsDigitalIn(IOPORT_C, BIT_9);      //IRQ_GP3
 
     /*COUNTER (TIMER1)*/
-    PORTSetPinsDigitalIn(IOPORT_A, BIT_4);      //T1CK
+    PORTSetPinsDigitalIn(IOPORT_A, BIT_4);      //T1CK //bzw. T45CK
 
     /*CONTROL SWITCHES*/
     PORTSetPinsDigitalOut(IOPORT_B, BIT_13);    //CNTL_AND_A
@@ -74,6 +74,9 @@ void pinMux01 (void)
 
       /*PWM (OC1)*/
       PPSOutput(1, RPB7, OC1);
+
+      /*32-bit timer 4,5*/
+      PPSInput(3,T4CK,RPA4);
 
      PPSLock;
 }
