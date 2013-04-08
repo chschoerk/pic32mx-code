@@ -80,6 +80,8 @@ int main(void) {
     //int tmpArrSize = CNT_HIST_BUFFER_SIZE;
     INT32 tmpArr1[CNT_HIST_BUFFER_SIZE] = { 0 };
     INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
+    INT16 tAr[300] = { 0 };
+    int tArIdx = 0;
     int tmpIdx = 0;
 
     counterOverflow = 0;
@@ -205,7 +207,7 @@ int main(void) {
                         /*check if we can stop controlling*/
                         //if (signOff < CNT_STOP_SIGN_TRESH && outSignChanges > CNT_STOP_THRESH && ret > 0 ){
                         if (outOfBounceCount < CNT_STOP_THRESH && ret > 0 ){
-                            turnOnLED1;
+                            //turnOnLED1;
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
                             controllerOn = 0;
@@ -219,6 +221,12 @@ int main(void) {
                         //tmpArr1[tmpIdx] = out;
                         //tmpArr2[tmpIdx] = fDeviation;
 
+                    } else {
+                        tAr[tArIdx] = fDeviation;
+                        tArIdx++;
+                        if (tArIdx==300){
+                            tArIdx = 0;
+                        }
                     }
                     /*
                     if (ret > 0){
