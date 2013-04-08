@@ -97,25 +97,27 @@ int main(void) {
     INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
 
     /*---PINMUXING (SWITCHING)---------------------------------------*/
+    mPORTCSetBits(BIT_5); // = SwitchOffSport();
     pinMux01();
+    mPORTBSetBits(BIT_9); // = SwitchADFSpi2Spi1();
 
     /*---SWITCHING---------------------------------------------------*/
-    turnOffLED1;
-    turnOffLED2;
+    //turnOffLED1;
+    //turnOffLED2;
     //switchOnCounter; //enable clock division
     //switch2ClockAnd(); //use buffer instead of AND
-    switchOffBuffer();
-    switchOffAnd();
+    //switchOffBuffer();
+    //switchOffAnd();
 
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-    pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
+    //pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
-    turnOnLED1;
-    turnOnLED2;
+    //turnOnLED1;
+    //turnOnLED2;
     setupADF();                             //ADF7023
-    turnOffLED1;
+    //turnOffLED1;
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
     setupDetectInterrupt();                 //PREAMBEL DETECTED IRQ
 
@@ -127,11 +129,12 @@ int main(void) {
     timeStampIncrement = (UINT32)(REFEDGES / 256); //245 = (12288000/48000)
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
-    turnOffLED2;
+    //turnOffLED2;
     while(1){
         
         if (rxDetected){
-            toggleLED2;
+            //toggleLED2;
+            mPORTBToggleBits(BIT_2); //debugging
             if (skippedFirst){
 
                 i = 10000;
@@ -142,21 +145,22 @@ int main(void) {
                 tsOld = ts;
                 //edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
                 if (counterOverflow > 0){
-                    edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32;
+                    edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32 - 1;
                 }else{
-                    edgeCount = counterValue32 - counterValueOld;
+                    edgeCount = counterValue32 - counterValueOld - 1; //auch -1?
                 }
-                tmpArr2[cntHistIdx] = edgeCount;
+                //tmpArr2[cntHistIdx] = edgeCount;
                 
                 sane = sanityCheck(edgeCount, turns);
                 if (sane){
                     //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
-                    if (controllerOn == 1){
-                        out = PID(-fDeviation, 0, 399999); //max: 0 - 399999
-                        if (out >= 0 && controllerOn == 1){
-                            SetDCOC1PWM(out);
-                        }
+                    //if (controllerOn == 1){
+                    if (ret > 0){
+                        //out = PID(-fDeviation, 0, 399999); //max: 0 - 399999
+                        //if (out >= 0 && controllerOn == 1){
+                            //SetDCOC1PWM(out);
+                        //}
 
                         /*controller history ringbuffer*/
                         cntHistBufSum = cntHistBufSum - cntHist[cntHistIdx] + out;
@@ -173,7 +177,7 @@ int main(void) {
                         }
                         tmpArr1[cntHistIdx] = thisDeviationAbs;                          
 
-                        //tmpArr2[cntHistIdx] = fDeviation;
+                        tmpArr2[cntHistIdx] = fDeviation;
 
 
                         /*check if we can stop controlling*/
@@ -187,7 +191,13 @@ int main(void) {
                         }
 
                         cntHistIdx++;
+                        
+                        if (cntHistIdx == CNT_HIST_BUFFER_SIZE){
+                            cntHistIdx = 0;
+                        }
+
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
+
 
 
                     } else {

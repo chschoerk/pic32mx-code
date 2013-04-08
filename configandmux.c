@@ -39,6 +39,8 @@ void pinMux01 (void)
     PORTSetPinsDigitalOut(IOPORT_B, BIT_13);    //CNTL_AND_A
     PORTSetPinsDigitalOut(IOPORT_A, BIT_1);    //CNTL_COUNTER
     PORTSetPinsDigitalOut(IOPORT_B, BIT_6);    //CNTL_BUFFER
+    PORTSetPinsDigitalOut(IOPORT_C, BIT_5);    //CS_ADF (SPORT)
+    PORTSetPinsDigitalOut(IOPORT_B, BIT_9);    //SEL_SPI (ADF SPI <-> SPI1 or SPIalt (bitbanging))
 
     /*LEDS*/
     PORTSetPinsDigitalOut(IOPORT_C, BIT_5);     //LED 1
@@ -53,8 +55,9 @@ void pinMux01 (void)
     PORTSetPinsDigitalOut(IOPORT_B, BIT_2);     //SDA2 (pin 23)
 
     /*TESTPINS*/
-     PORTSetPinsDigitalOut(IOPORT_B, BIT_10); //PIN 8
-     PORTSetPinsDigitalOut(IOPORT_B, BIT_11); //PIN 9
+     //PORTSetPinsDigitalOut(IOPORT_B, BIT_10); //PIN 8
+     //PORTSetPinsDigitalOut(IOPORT_B, BIT_11); //PIN 9
+    PORTSetPinsDigitalOut(IOPORT_B, BIT_2);
 
     /*PPS*/
      PPSUnLock;
