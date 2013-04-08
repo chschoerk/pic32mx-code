@@ -25,6 +25,8 @@ extern "C" {
 
 void switch2ClockBuffer();
 void switch2ClockAnd();
+void switchOffAnd();
+void switchOffBuffer();
 
 #ifdef	__cplusplus
 }

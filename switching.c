@@ -18,3 +18,13 @@ void switch2ClockAnd()
     mPORTBSetBits(BIT_13); //enable AND
 
 }
+
+void switchOffAnd()
+{
+    mPORTBClearBits(BIT_13); //disable AND
+}
+
+void switchOffBuffer()
+{
+    mPORTBClearBits(BIT_6); //disable BUFFER
+}

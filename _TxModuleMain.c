@@ -102,9 +102,11 @@ int main(void) {
     /*---SWITCHING---------------------------------------------------*/
     turnOffLED1;
     turnOffLED2;
-    switchOnCounter; //enable clock division
-    switch2ClockAnd(); //use buffer instead of AND
-    
+    //switchOnCounter; //enable clock division
+    //switch2ClockAnd(); //use buffer instead of AND
+    switchOffBuffer();
+    switchOffAnd();
+
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
     //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
@@ -160,30 +162,6 @@ int main(void) {
                         cntHistBufSum = cntHistBufSum - cntHist[cntHistIdx] + out;
                         cntHist[cntHistIdx] = out;
 
-                        /*
-                        x0 = cntHistIdx;
-                        xm1 = x0 - 1;
-                        xm1 &= (CNT_HIST_BUFFER_SIZE-1); //mask out top bits (wrap index)
-                        xm2 = x0 - 2;
-                        xm2 &= (CNT_HIST_BUFFER_SIZE-1); //mask out top bits (wrap index)
-                        */
-                        
-                        /*check if values right and left of x0 are both lower or higher - if so we have a sign change*/
-                        /*if  (  ((UINT32)(cntHist[xm1] - cntHist[xm2]) >> 31) ^ ((UINT32)(cntHist[xm1] - cntHist[x0]) >> 31) ){
-                            outSignChanges = outSignChanges - signHist[cntHistIdx] + 0;
-                            signHist[cntHistIdx] = 0; //no sign change
-                        }else{
-                            outSignChanges = outSignChanges - signHist[cntHistIdx] + 1;
-                            signHist[cntHistIdx] = 1; //sign change    
-                        }
-
-                        if (outSignChanges > CNT_STOP_THRESH && ret > 0){
-                            turnOnLED1;
-                            out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
-                            SetDCOC1PWM(out);
-                            controllerOn = 0;
-                        }*/
-
                         /*sodala, jetz aba*/
                         if (tmpArr1[cntHistIdx] > BOUNCE_TRESH){
                             outOfBounceCount--;
@@ -193,40 +171,24 @@ int main(void) {
                         if (thisDeviationAbs > BOUNCE_TRESH){
                             outOfBounceCount++;
                         }
-                        tmpArr1[cntHistIdx] = thisDeviationAbs;
-
-                             
-                        /*count positive and negative frequency errors*/
-                        /*
-                        devSign = ( (fDeviation > 0) - (fDeviation < 0) );
-                        errorSignBufSum = errorSignBufSum - tmpArr1[cntHistIdx] + devSign;
-                        tmpArr1[cntHistIdx] = devSign;
-                        if (errorSignBufSum < 0){
-                            signOff = -errorSignBufSum;
-                        }else{
-                            signOff = errorSignBufSum;
-                        }
-                        */
+                        tmpArr1[cntHistIdx] = thisDeviationAbs;                          
 
                         //tmpArr2[cntHistIdx] = fDeviation;
 
 
                         /*check if we can stop controlling*/
-                        //if (signOff < CNT_STOP_SIGN_TRESH && outSignChanges > CNT_STOP_THRESH && ret > 0 ){
                         if (outOfBounceCount < CNT_STOP_THRESH && ret > 0 ){
-                            turnOnLED1;
+                            //turnOnLED1;
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
-                            controllerOn = 0;
+                            //controllerOn = 0;
+                            switchOnCounter; //enable clock division
+                            switch2ClockAnd();
                         }
 
                         cntHistIdx++;
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
-                       
 
-                        /*DEBUG*/
-                        //tmpArr1[tmpIdx] = out;
-                        //tmpArr2[tmpIdx] = fDeviation;
 
                     } else {
                         tAr[tArIdx] = fDeviation;
@@ -235,27 +197,12 @@ int main(void) {
                             tArIdx = 0;
                         }
                     }
-                    /*
-                    if (ret > 0){
-                        turnOnLED1;
-                        pwmUpdate = (float)fDeviation/(float)2013.135;
-                        pwmUpdate = pwmUpdate * 2222.22;
-                        pwmValCurrent -= (UINT32)(pwmUpdate/2);
-                        SetDCOC1PWM(pwmValCurrent);
-                        while(1){
-                            ret = 1;
-                        }
-
-                        //fDeviation = anotherFilter(fDeviation); //low pass TODO  -> maybe moving average with ringbuffer 2^x
-                        //out = PID(fDeviation); //limiten nicht vergessen
-                        //regVal = ControlOut2PWMRegValue(out);
-
-                        
+                                           
                         
                         //TODO: set status to synced
                         //TODO: compute PWM register value
                         //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
-                    }*/
+                    
                 }
 
             }else{ //if(skippedFirst)
@@ -269,17 +216,11 @@ int main(void) {
 
             /*reset counters*/
             counterOverflow = 0;
-            //counterValueOld = counterValue;
             counterValueOld = counterValue32;
-            //rxDetected = FALSE;
 
             /*Clear ADF8023 Interrupt*/
             dummyDat = 0xFF;
             bOk = bOk & ADF_MMapWrite(MCR_interrupt_source_0_Adr, 0x1, &dummyDat); //clear all interrupts in source 0 by writing 1's
-
-            //debugging
-            //RetVal = ADF_MMapRead(MCR_interrupt_source_0_Adr, 0x01, &MCRByte);
-            //retBool = ADF_ReadStatus(&ADStat);
 
             /*update sync-status, ...*/
             //TODO
