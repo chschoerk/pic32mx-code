@@ -142,9 +142,9 @@ int main(void) {
                 tsOld = ts;
                 //edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
                 if (counterOverflow > 0){
-                    edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32;
+                    edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32 - 1;
                 }else{
-                    edgeCount = counterValue32 - counterValueOld;
+                    edgeCount = counterValue32 - counterValueOld - 1;
                 }
                 tmpArr2[cntHistIdx] = edgeCount;
                 
