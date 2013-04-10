@@ -102,10 +102,10 @@ int main(void) {
     /*---SWITCHING---------------------------------------------------*/
     turnOffLED1;
     turnOffLED2;
-    //switchOnCounter; //enable clock division
-    //switch2ClockAnd(); //use buffer instead of AND
-    switchOffBuffer();
-    switchOffAnd();
+    switchOnCounter; //enable clock division
+    switch2ClockAnd(); //use buffer instead of AND
+    //switchOffBuffer();
+    //switchOffAnd();
 
     /*---SETUP------------------------------------------------------*/
     setupI2S();                             //I2S (TIMESTAMP OUT)
@@ -182,8 +182,8 @@ int main(void) {
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
                             //controllerOn = 0;
-                            switchOnCounter; //enable clock division
-                            switch2ClockAnd();
+                            //switchOnCounter; //enable clock division
+                            //switch2ClockAnd();
                         }
 
                         cntHistIdx++;
