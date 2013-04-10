@@ -52,7 +52,7 @@ int sanityCheck(UINT32 edgeCount, UINT32 turns)
     UINT32 v1, dist, sanityThresh;
     int sanity = 0;
 
-    if (turns == 0){
+    if (turns == 0 || turns > MAX_MISSED_FOR_SANITY){
         sanity = 0;
         return sanity;
     }

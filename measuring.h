@@ -31,6 +31,8 @@ extern "C" {
 #define KP 8000 //KP = 8000 @ TMEAS_BUFFER_SIZE = 64, TMEAS_BUFFER_SIZE = 256 -> KI = 2000
 #define KD 0
 
+#define MAX_MISSED_FOR_SANITY 40  //if more than MAX_MISSED_FOR_SANITY packets have been missed between two valid packets. don't use this packet
+
 
 
     

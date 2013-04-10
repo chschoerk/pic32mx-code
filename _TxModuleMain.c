@@ -177,13 +177,15 @@ int main(void) {
 
 
                         /*check if we can stop controlling*/
-                        if (outOfBounceCount < CNT_STOP_THRESH && ret > 0 ){
+                        if (outOfBounceCount < CNT_STOP_THRESH && ret > 0  && syncState == NOTSYNCED){
                             //turnOnLED1;
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
                             //controllerOn = 0;
                             //switchOnCounter; //enable clock division
                             //switch2ClockAnd();
+
+                            /*reset timestamps - now they should be valid*/
                         }
 
                         cntHistIdx++;
@@ -196,12 +198,9 @@ int main(void) {
                         if (tArIdx==300){
                             tArIdx = 0;
                         }
-                    }
-                                           
+                    }                        
                         
                         //TODO: set status to synced
-                        //TODO: compute PWM register value
-                        //TODO: set new PWM register value (SetDCOC1PWM(0x7FFF));
                     
                 }
 
