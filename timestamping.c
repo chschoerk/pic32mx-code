@@ -10,8 +10,7 @@
 #include "timestamping.h"
 
 /*DEFINES---------------------------------------------*/
-#define TXBUFFSZ                64
-#define TXBUFFSZ_HALF           (TXBUFFSZ/2)
+
 //#define RXBUFFSZ                6
 //#define RXBUFFSZ_HALF           (RXBUFFSZ/2)
 
@@ -19,18 +18,20 @@
 
 /*GLOBALS----------------------------------------------*/
 UINT32                  txferTxBuff[TXBUFFSZ];
-//UINT8                   txferRxBuff[RXBUFFSZ];
 static volatile int     RxBufferADone = 0;
 static volatile int     RxBufferBDone = 0;
 
 volatile int srcPtrOverruns = 0;
 volatile UINT32 timestamp = 0;
 volatile int srcPtr = -1;
-volatile int gotNewTimestamp = 0;
+volatile int overwriteTimestamps = 0;
 
-//volatile UINT32 tmpTime[20];
 volatile unsigned int tmpArr[20];
 
+extern unsigned char syncState; //to be found in _TxModuleMain.c
+extern volatile UINT16 curDmaSrcPtr;
+extern volatile UINT32 firstTimestampInBufferA; //to be found in _TxModuleMain.c
+extern volatile UINT32 firstTimestampInBufferB; //to be found in _TxModuleMain.c
 
 int setupI2S()
 {
@@ -82,15 +83,16 @@ UINT32 readReceivedTimestamp()
 void updateTimestamp(UINT32 timestampNew)
 {
     timestamp = timestampNew;
-    gotNewTimestamp = 1;
+    overwriteTimestamps = 1;
 }
 
+/*
 void updateDMASourcePointer(void)
 {
     int tmp;
     tmp = DmaChnGetSrcPnt(DMA_CHANNEL1);
     srcPtr = tmp >> 2; //floor(srcPtr_byte/4) => index of the current buffer element (UINT32)
-}
+}*/
 
 int startDMA1_TxBuffToSpi2(void)
 {
@@ -132,38 +134,34 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
     INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
     evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
 
+    /*BLOCK_DONE*/
     if(evFlags&DMA_EV_BLOCK_DONE){
+
  	DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_BLOCK_DONE);
 
-        if (gotNewTimestamp){
-
-            passedSamples = (TXBUFFSZ-srcPtr+1) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
-                    //cant srcPtrOverrungs ever be > 0? Don't think so
+        if (overwriteTimestamps){
+            passedSamples = (TXBUFFSZ-curDmaSrcPtr+1) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
             counter = timestamp + passedSamples;
-
-            /*
-            tmpArr[tmpIdx] = counter;
-            tmpTime[tmpIdx] = timestamp;
-            tmpIdx++;
-            if (tmpIdx == 20){
-                tmpIdx = 0;
-            }*/
-
             srcPtrOverruns = 0;
-            gotNewTimestamp = 0; //set to status "no new timestamp received"
+            overwriteTimestamps = 0;
         }
-
         srcPtrOverruns++;
+
+        firstTimestampInBufferB = counter;
         mx = TXBUFFSZ_HALF;
-        while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR
+        while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
             txferTxBuff[mx] = counter;
             counter++;
             mx++;  
         }
     }
 
+    /*HALF_DONE*/
     if(evFlags&DMA_EV_SRC_HALF){
+
         DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_HALF);
+
+        firstTimestampInBufferA = counter;
         mx = 0;
         while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
             txferTxBuff[mx] = counter;

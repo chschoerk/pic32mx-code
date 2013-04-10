@@ -54,9 +54,6 @@ extern "C" {
 #define GetPeripheralClock()    (GetSystemClock())
 #define SYS_FREQ                (40000000L)
 
-#define NOTSYNCED               0
-#define SYNCED                  1
-
 
 #ifdef	__cplusplus
 }

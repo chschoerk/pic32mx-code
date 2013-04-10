@@ -17,10 +17,14 @@ int setupI2S(void);
 int initBuffers();
 UINT32 readReceivedTimestamp(void);
 void updateTimestamp(UINT32 timestampNew);
-void updateDMASourcePointer(void);
+//void updateDMASourcePointer(void);
 int startDMA1_TxBuffToSpi1(void);
 void resetSrcPtrOverruns(void);
 
+#define TXBUFFSZ                64
+#define TXBUFFSZ_HALF           (TXBUFFSZ/2)
+#define NOTSYNCED               0
+#define SYNCED                  1
 
 #ifdef	__cplusplus
 }

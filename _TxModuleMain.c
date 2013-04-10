@@ -28,10 +28,10 @@
 #define tPAYLOADLEN          32   //240 //byte
 
 #define VCO_FREQ             12288000
-#define CNT_HIST_BUFFER_SIZE 256 //size of ringbuffer that keeps track of PID controller output history
-#define CNT_STOP_THRESH      20
-#define CNT_STOP_SIGN_TRESH  40
-#define BOUNCE_TRESH         50
+#define CNT_HIST_BUFFER_SIZE 64 //size of ringbuffer that keeps track of PID controller output history
+#define CNT_STOP_THRESH      10
+//#define CNT_STOP_SIGN_TRESH  40
+#define BOUNCE_TRESH         250
 
 volatile BOOL rxDetected;
 volatile unsigned int counterValue = 0;
@@ -39,10 +39,11 @@ volatile unsigned int counterValueOld = 0;
 volatile unsigned int counterOverflow = 0;
 volatile UINT32 counterValue32 = 0;
 
-//volatile int tmpIdx = 0;
-//volatile int tmpSrcPtrArray[10];
-
-volatile unsigned int stallRecover;
+unsigned char syncState = NOTSYNCED;
+volatile UINT16 curDmaSrcPtr;
+volatile UINT32 curTimestampWritten;
+volatile UINT32 firstTimestampInBufferA;
+volatile UINT32 firstTimestampInBufferB;
 
 
 int main(void) {
@@ -67,23 +68,17 @@ int main(void) {
     UINT32 pwmValCurrent;
     INT32 out;
     UINT32 cntHist[CNT_HIST_BUFFER_SIZE] = { 0 };
-    //UINT8 signHist[CNT_HIST_BUFFER_SIZE] = { 0 };
     INT8 devSign = 0;
-    //INT16 signOff = 0;
     UINT32 cntHistBufSum = 0;
     int cntHistIdx = 0;
-    //INT16 errorSignBufSum = 0;
-    int x0, xm1, xm2;
     int controllerOn = 1;
-    //UINT16 outSignChanges = 0;
     INT16 outOfBounceCount = 0;
     INT32 thisDeviationAbs = 0;
-    //int tmpArrSize = CNT_HIST_BUFFER_SIZE;
     INT32 tmpArr1[CNT_HIST_BUFFER_SIZE] = { 0 };
     INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
-    INT16 tAr[300] = { 0 };
-    int tArIdx = 0;
     int tmpIdx = 0;
+    INT32 timestampDivergence;
+
 
 
     counterOverflow = 0;
@@ -140,17 +135,32 @@ int main(void) {
                 ts = readReceivedTimestamp();
                 turns = (ts - tsOld)/timeStampIncrement;
                 tsOld = ts;
-                //edgeCount = (T1PR - counterValueOld) + ((counterOverflow-1)*T1PR) + counterValue; //only valid if counterOverflow > 0
+
+                if (syncState == SYNCED){
+                    /*if we think we're synced, timestamps should be in sync*/
+                    timestampDivergence = ts - curTimestampWritten; //timestamp error
+                    /*
+                    if (timestampDivergence <= 1 && timestampDivergence >= -1){
+                        //everything's alright, all in good sync
+                    }else{
+                        //we seem to be a bit off -> adjust VCXO slighly (how?)
+                    }*/
+                    tmpArr2[tmpIdx] = timestampDivergence;
+                    tmpIdx++;
+                        if (tmpIdx == 64){
+                            tmpIdx = 19;
+                        }
+                }
+
                 if (counterOverflow > 0){
                     edgeCount = T45PR - counterValueOld + ((counterOverflow-1)*T45PR) + counterValue32 - 1;
                 }else{
                     edgeCount = counterValue32 - counterValueOld - 1;
                 }
-                tmpArr2[cntHistIdx] = edgeCount;
+                //tmpArr2[cntHistIdx] = edgeCount;
                 
                 sane = sanityCheck(edgeCount, turns);
                 if (sane){
-                    //updateTimestamp(ts);
                     ret = measureFrequency(edgeCount, pBuf, &bufSum, turns, &fDeviation);
                     if (controllerOn == 1){
                         out = PID(-fDeviation, 0, 399999); //max: 0 - 399999
@@ -162,7 +172,7 @@ int main(void) {
                         cntHistBufSum = cntHistBufSum - cntHist[cntHistIdx] + out;
                         cntHist[cntHistIdx] = out;
 
-                        /*sodala, jetz aba*/
+                        /*update outOfBounce Count (defines sync status)*/
                         if (tmpArr1[cntHistIdx] > BOUNCE_TRESH){
                             outOfBounceCount--;
                         }
@@ -178,26 +188,26 @@ int main(void) {
 
                         /*check if we can stop controlling*/
                         if (outOfBounceCount < CNT_STOP_THRESH && ret > 0  && syncState == NOTSYNCED){
-                            //turnOnLED1;
+                            turnOnLED1;
                             //out = cntHistBufSum / CNT_HIST_BUFFER_SIZE;
                             //SetDCOC1PWM(out);
                             //controllerOn = 0;
                             //switchOnCounter; //enable clock division
                             //switch2ClockAnd();
 
-                            /*reset timestamps - now they should be valid*/
+                            /*update timestamps - now they should be valid*/
+                            updateTimestamp(ts);
+                            syncState = SYNCED;
                         }
 
                         cntHistIdx++;
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
 
 
-                    } else {
-                        tAr[tArIdx] = fDeviation;
-                        tArIdx++;
-                        if (tArIdx==300){
-                            tArIdx = 0;
-                        }
+                    } else { // if (controllerOn == 1)
+
+                        /*....*/
+
                     }                        
                         
                         //TODO: set status to synced
@@ -244,7 +254,17 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
    */
    counterValue32 = TMR4;
 
-   updateDMASourcePointer();
+   //updateDMASourcePointer();
+   curDmaSrcPtr = (DmaChnGetSrcPnt(DMA_CHANNEL1)) >> 2; //floor(srcPtr_byte/4) => index of the current buffer element (UINT32)
+
+   if (curDmaSrcPtr < TXBUFFSZ_HALF){
+        curTimestampWritten = curDmaSrcPtr + firstTimestampInBufferA;
+   }else{
+        curTimestampWritten = (curDmaSrcPtr - TXBUFFSZ_HALF) + firstTimestampInBufferB;
+   }
+
+
+
    resetSrcPtrOverruns();
 
    rxDetected = TRUE;
