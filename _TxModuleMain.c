@@ -39,11 +39,15 @@ volatile unsigned int counterValueOld = 0;
 volatile unsigned int counterOverflow = 0;
 volatile UINT32 counterValue32 = 0;
 
+UINT32 txferTxBuff[TXBUFFSZ];
 unsigned char syncState = NOTSYNCED;
 volatile UINT16 curDmaSrcPtr;
 volatile UINT32 curTimestampWritten;
 volatile UINT32 firstTimestampInBufferA;
 volatile UINT32 firstTimestampInBufferB;
+volatile UINT32 counter = 0;
+volatile unsigned char fillBufferA = 0;
+volatile unsigned char fillBufferB = 0;
 
 
 int main(void) {
@@ -78,7 +82,7 @@ int main(void) {
     INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
     int tmpIdx = 0;
     INT32 timestampDivergence;
-
+    int mx = 0;
 
 
     counterOverflow = 0;
@@ -238,8 +242,36 @@ int main(void) {
             rxDetected = FALSE;
             bOk = bOk && ADF_GoToRxState();
                       
-        }
-    }
+        } //if (rxDetected)
+
+
+        if (fillBufferA || fillBufferB){  /*fill DMA buffer*/
+
+            if (fillBufferA){
+                mx = TXBUFFSZ_HALF;
+                while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
+                    txferTxBuff[mx] = counter;
+                    counter++;
+                    mx++;
+                }
+                fillBufferA = 0;
+            }
+
+            if (fillBufferB){
+                mx = 0;
+                while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
+                    txferTxBuff[mx] = counter;
+                    counter++;
+                    mx++;
+                }
+                fillBufferB = 0;
+            }
+
+        } //if (fillBufferA || fillBufferB)
+        
+    } //while(1)
+
+    
 
     return (EXIT_SUCCESS);
 }
@@ -283,8 +315,6 @@ void __ISR(_TIMER_1_VECTOR, ipl1) T1Interrupt()
 
 void __ISR(_TIMER_5_VECTOR, ipl6) T5Interrupt()
 {
-   //counterOverflow++;
-   //mPORTBToggleBits(BIT_10); //PIN 8
    counterOverflow++;
    mT5ClearIntFlag();
 }

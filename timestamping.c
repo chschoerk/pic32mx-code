@@ -17,9 +17,8 @@
 
 
 /*GLOBALS----------------------------------------------*/
-UINT32                  txferTxBuff[TXBUFFSZ];
-static volatile int     RxBufferADone = 0;
-static volatile int     RxBufferBDone = 0;
+//static volatile int     RxBufferADone = 0;
+//static volatile int     RxBufferBDone = 0;
 
 volatile int srcPtrOverruns = 0;
 volatile UINT32 timestamp = 0;
@@ -28,10 +27,14 @@ volatile int overwriteTimestamps = 0;
 
 volatile unsigned int tmpArr[20];
 
+extern UINT32 txferTxBuff[TXBUFFSZ]; //to be found in _TxModuleMain.c
 extern unsigned char syncState; //to be found in _TxModuleMain.c
 extern volatile UINT16 curDmaSrcPtr;
 extern volatile UINT32 firstTimestampInBufferA; //to be found in _TxModuleMain.c
 extern volatile UINT32 firstTimestampInBufferB; //to be found in _TxModuleMain.c
+extern volatile UINT32 counter; //to be found in _TxModuleMain.c
+extern volatile unsigned char fillBufferA; //to be found in _TxModuleMain.c
+extern volatile unsigned char fillBufferB; //to be found in _TxModuleMain.c
 
 int setupI2S()
 {
@@ -127,9 +130,7 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
 {
     int	evFlags;				// event flags when getting the interrupt
     int     mx = 0;
-    static unsigned int counter = 0;
     unsigned int passedSamples;
-    static int tmpIdx = 0;
 
     INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
     evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
@@ -146,28 +147,28 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
             overwriteTimestamps = 0;
         }
         srcPtrOverruns++;
-
         firstTimestampInBufferB = counter;
-        mx = TXBUFFSZ_HALF;
+
+        fillBufferB = 1;
+        /* mx = TXBUFFSZ_HALF;
         while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
             txferTxBuff[mx] = counter;
             counter++;
             mx++;  
-        }
+        } */
     }
 
     /*HALF_DONE*/
     if(evFlags&DMA_EV_SRC_HALF){
-
         DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_HALF);
-
         firstTimestampInBufferA = counter;
-        mx = 0;
+        fillBufferA = 1;
+        /*mx = 0;
         while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
             txferTxBuff[mx] = counter;
             counter++;
             mx++;     
-        }
+        }*/
     }
 
 
