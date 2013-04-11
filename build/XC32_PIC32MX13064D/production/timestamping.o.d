@@ -3,4 +3,5 @@ timestamping.c  \
  configandmux.h  \
 adf7023_mint.h  \
 measuring.h  \
+switching.h  \
 timestamping.h 

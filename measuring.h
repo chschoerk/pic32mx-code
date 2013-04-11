@@ -27,7 +27,7 @@ extern "C" {
 #define LIM_INT 0
 
 #define SCAL 12 //2^12
-#define KI 40 //KI = 80 @ TMEAS_BUFFER_SIZE = 64, TMEAS_BUFFER_SIZE = 256 -> KI = 20
+#define KI 60 //KI = 80 @ TMEAS_BUFFER_SIZE = 64, TMEAS_BUFFER_SIZE = 256 -> KI = 20
 #define KP 8000 //KP = 8000 @ TMEAS_BUFFER_SIZE = 64, TMEAS_BUFFER_SIZE = 256 -> KI = 2000
 #define KD 0
 

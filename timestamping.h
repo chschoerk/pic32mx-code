@@ -21,7 +21,7 @@ void updateTimestamp(UINT32 timestampNew);
 int startDMA1_TxBuffToSpi1(void);
 void resetSrcPtrOverruns(void);
 
-#define TXBUFFSZ                64
+#define TXBUFFSZ                256     //0 < TXBUFFSZ < 65636
 #define TXBUFFSZ_HALF           (TXBUFFSZ/2)
 #define NOTSYNCED               0
 #define SYNCED                  1

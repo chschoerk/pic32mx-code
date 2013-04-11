@@ -7,6 +7,7 @@
 #include "configandmux.h"
 #include "adf7023_mint.h"
 #include "measuring.h"
+#include "switching.h"
 #include "timestamping.h"
 
 /*DEFINES---------------------------------------------*/
@@ -112,13 +113,13 @@ int startDMA1_TxBuffToSpi2(void)
 	// cell size is one byte: we want one byte to be sent per each SPI TXBE event
 	DmaChnSetTxfer(dmaTxChn, txferTxBuff, (void*)&SPI2BUF, sizeof(txferTxBuff), 4, 4);
 
-        DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_BLOCK_DONE | DMA_EV_SRC_HALF);	// enable the transfer done interrupt, when all buffer transferred
+        DmaChnSetEvEnableFlags(dmaTxChn, DMA_EV_SRC_FULL | DMA_EV_SRC_HALF);	// enable the transfer done interrupt, when all buffer transferred
 	//INTConfigureSystem(INT_SYSTEM_CONFIG_MULT_VECTOR);
 	//INTEnableInterrupts();
 	INTSetVectorPriority(INT_VECTOR_DMA(dmaTxChn), INT_PRIORITY_LEVEL_5);		// set INT controller priority
 	INTSetVectorSubPriority(INT_VECTOR_DMA(dmaTxChn), INT_SUB_PRIORITY_LEVEL_3);		// set INT controller sub-priority
 	INTEnable(INT_SOURCE_DMA(dmaTxChn), INT_ENABLED);		// enable the chn interrupt in the INT controller
-	DmaChnStartTxfer(dmaTxChn, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
+	//DmaChnStartTxfer(dmaTxChn, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
         
 	return 1;
 }
@@ -129,16 +130,30 @@ int startDMA1_TxBuffToSpi2(void)
 void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
 {
     int	evFlags;				// event flags when getting the interrupt
-    int     mx = 0;
     unsigned int passedSamples;
+    static int debug = 0;
+    UINT32 t = 0;
 
     INTClearFlag(INT_SOURCE_DMA(DMA_CHANNEL1));	// acknowledge the INT controller, we're servicing int
     evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);	// get the event flags
 
-    /*BLOCK_DONE*/
-    if(evFlags&DMA_EV_BLOCK_DONE){
+    /*if( (evFlags&DMA_EV_BLOCK_DONE) && (evFlags&DMA_EV_SRC_HALF) ){
+        debug++;
+        if (debug == 5){
+            debug = 0;
+        }
+    }*/
 
- 	DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_BLOCK_DONE);
+    /*BLOCK_DONE*/
+    if(evFlags&DMA_EV_SRC_FULL){
+
+ 	DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_FULL);
+        evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);
+        /*t = DCH1INT;
+        t &= ~DMA_EV_SRC_FULL;
+        DCH1INT = t;
+        DCH1INTbits.CHSDIF = 0;
+        evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);*/
 
         if (overwriteTimestamps){
             passedSamples = (TXBUFFSZ-curDmaSrcPtr+1) + (srcPtrOverruns * TXBUFFSZ); //number of timestamps written since timestamp package was received
@@ -146,30 +161,17 @@ void __ISR(_DMA1_VECTOR, ipl5) DmaHandler1(void)
             srcPtrOverruns = 0;
             overwriteTimestamps = 0;
         }
-        srcPtrOverruns++;
-        firstTimestampInBufferB = counter;
-
+        srcPtrOverruns++; 
         fillBufferB = 1;
-        /* mx = TXBUFFSZ_HALF;
-        while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
-            txferTxBuff[mx] = counter;
-            counter++;
-            mx++;  
-        } */
-    }
 
-    /*HALF_DONE*/
-    if(evFlags&DMA_EV_SRC_HALF){
+    }
+    if(evFlags&DMA_EV_SRC_HALF){ /*HALF_DONE*/
         DmaChnClrEvFlags(DMA_CHANNEL1, DMA_EV_SRC_HALF);
-        firstTimestampInBufferA = counter;
+        //DCH1INT &= ~DMA_EV_SRC_HALF;
+        evFlags=DmaChnGetEvFlags(DMA_CHANNEL1);
         fillBufferA = 1;
-        /*mx = 0;
-        while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
-            txferTxBuff[mx] = counter;
-            counter++;
-            mx++;     
-        }*/
+
     }
 
-
+    
 }

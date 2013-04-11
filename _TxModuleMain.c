@@ -84,7 +84,6 @@ int main(void) {
     INT32 timestampDivergence;
     int mx = 0;
 
-
     counterOverflow = 0;
     counterValue = 0;
     counterValueOld = 0;
@@ -120,6 +119,7 @@ int main(void) {
 
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts();
+    DmaChnStartTxfer(DMA_CHANNEL1, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
 
     /*---LOOP-------------------------------------------------------*/
     //stallRecover = 0;
@@ -127,11 +127,13 @@ int main(void) {
     rxDetected = FALSE;
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     turnOffLED2;
+
     while(1){
         
         if (rxDetected){
             toggleLED2;
             if (skippedFirst){
+
 
                 i = 10000;
                 while(i--); //wait
@@ -140,20 +142,29 @@ int main(void) {
                 turns = (ts - tsOld)/timeStampIncrement;
                 tsOld = ts;
 
+                /*tmpArr2[tmpIdx] = ts - curTimestampWritten;
+                tmpIdx++;
+                if (tmpIdx == 64){
+                    tmpIdx = 19;
+                }*/
+
                 if (syncState == SYNCED){
                     /*if we think we're synced, timestamps should be in sync*/
                     timestampDivergence = ts - curTimestampWritten; //timestamp error
-                    /*
+                    
                     if (timestampDivergence <= 1 && timestampDivergence >= -1){
                         //everything's alright, all in good sync
+                        timestampDivergence = 0; //temp debug
                     }else{
                         //we seem to be a bit off -> adjust VCXO slighly (how?)
-                    }*/
-                    tmpArr2[tmpIdx] = timestampDivergence;
+                        turnOffLED1;
+                    }
+                    //tmpArr2[tmpIdx] = timestampDivergence;
+                    /*tmpArr2[tmpIdx] = timestampDivergence;
                     tmpIdx++;
-                        if (tmpIdx == 64){
-                            tmpIdx = 19;
-                        }
+                    if (tmpIdx == 64){
+                        tmpIdx = 19;
+                    }*/
                 }
 
                 if (counterOverflow > 0){
@@ -187,7 +198,11 @@ int main(void) {
                         }
                         tmpArr1[cntHistIdx] = thisDeviationAbs;                          
 
-                        //tmpArr2[cntHistIdx] = fDeviation;
+                        /*tmpArr2[tmpIdx] = fDeviation;
+                        tmpIdx++;
+                        if (tmpIdx == 64){
+                            tmpIdx = 0;
+                        }*/
 
 
                         /*check if we can stop controlling*/
@@ -221,12 +236,12 @@ int main(void) {
             }else{ //if(skippedFirst)
 
                 ts = readReceivedTimestamp();
+                updateTimestamp(ts);
                 tsOld = ts;
                 skippedFirst = 1;
 
             }
             
-
             /*reset counters*/
             counterOverflow = 0;
             counterValueOld = counterValue32;
@@ -247,6 +262,10 @@ int main(void) {
 
         if (fillBufferA || fillBufferB){  /*fill DMA buffer*/
 
+            if (fillBufferA && fillBufferB){
+                //this would be an error
+            }
+
             if (fillBufferA){
                 mx = TXBUFFSZ_HALF;
                 while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
@@ -254,6 +273,7 @@ int main(void) {
                     counter++;
                     mx++;
                 }
+                firstTimestampInBufferA = counter-TXBUFFSZ_HALF;
                 fillBufferA = 0;
             }
 
@@ -264,11 +284,12 @@ int main(void) {
                     counter++;
                     mx++;
                 }
+                firstTimestampInBufferB = counter-TXBUFFSZ_HALF;
                 fillBufferB = 0;
             }
 
         } //if (fillBufferA || fillBufferB)
-        
+      
     } //while(1)
 
     
@@ -295,7 +316,7 @@ void __ISR(_EXTERNAL_1_VECTOR, ipl3) INT1Interrupt()
         curTimestampWritten = (curDmaSrcPtr - TXBUFFSZ_HALF) + firstTimestampInBufferB;
    }
 
-
+   curTimestampWritten += (TXBUFFSZ_HALF-1); //otherwise timestampDeviation (= ts - curTimestampWritten) = TXBUFFSZ_HALF when in sync (???)
 
    resetSrcPtrOverruns();
 
