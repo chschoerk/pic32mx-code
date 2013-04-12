@@ -48,7 +48,7 @@ volatile UINT32 firstTimestampInBufferB;
 volatile UINT32 counter = 0;
 volatile unsigned char fillBufferA = 0;
 volatile unsigned char fillBufferB = 0;
-
+volatile UINT32 nominalValue = REFEDGES;
 
 int main(void) {
 
@@ -65,7 +65,6 @@ int main(void) {
     UINT32 tsOld = 0;
     UINT32 edgeCount = 0;
     UINT32 timeStampIncrement;
-
     int sane;
     int ret;
     int i;
@@ -82,7 +81,11 @@ int main(void) {
     INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
     int tmpIdx = 0;
     INT32 timestampDivergence;
-    int mx = 0;
+    UINT32 packetCounter = 0;
+    INT32 lastTimestampDivergence = 0;
+    UINT32 packetCount[3] = { 0 };
+    UINT16 pcidx = 0;
+    INT32 tsdiv[3] = { 0 };
 
     counterOverflow = 0;
     counterValue = 0;
@@ -119,6 +122,8 @@ int main(void) {
 
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts();
+    
+    /*start DMA transfer AFTER(!) enabling interrupts*/
     DmaChnStartTxfer(DMA_CHANNEL1, DMA_WAIT_NOT, 0);	// force the DMA transfer: the SPI TBE flag it's already been active
 
     /*---LOOP-------------------------------------------------------*/
@@ -141,21 +146,30 @@ int main(void) {
                 turns = (ts - tsOld)/timeStampIncrement;
                 tsOld = ts;
 
-                /*tmpArr2[tmpIdx] = ts - curTimestampWritten;
-                tmpIdx++;
-                if (tmpIdx == 64){
-                    tmpIdx = 19;
-                }*/
-
                 if (syncState == SYNCED){
+                    packetCounter++;
                     /*if we think we're synced, timestamps should be in sync*/
                     timestampDivergence = ts - curTimestampWritten; //timestamp error
                     
-                    if (timestampDivergence <= 1 && timestampDivergence >= -1){
+                    if (timestampDivergence <= (lastTimestampDivergence+1) && timestampDivergence >= (lastTimestampDivergence-1)){
                         //everything's alright, all in good sync
                         timestampDivergence = 0; //temp debug
                     }else{
                         //we seem to be a bit off -> adjust VCXO slighly (how?)
+                        lastTimestampDivergence = timestampDivergence;
+                        packetCount[pcidx] = packetCounter;
+                        tsdiv[pcidx] = lastTimestampDivergence;
+                        packetCounter = 0;
+                        pcidx++;
+                        if (pcidx==3){
+                            pcidx = 0;
+                        }
+
+                        if (timestampDivergence > 0){ //we're too slow
+                            nominalValue += 30; //30 mal so zum probieren
+                        }else{ //we're too fast
+                            nominalValue -= 30; //30 mal so zum probieren
+                        }
                         turnOffLED1;
                     }
 
@@ -215,10 +229,8 @@ int main(void) {
                         /*....*/
 
                     }                        
-                        
-                        //TODO: set status to synced
                     
-                }
+                } //if sane
 
             }else{ //if(skippedFirst)
 
@@ -249,33 +261,9 @@ int main(void) {
 
         if (fillBufferA || fillBufferB){  /*fill DMA buffer*/
 
-            if (fillBufferA && fillBufferB){
-                //error
-            }
+            fillDMABufferHalf();
 
-            if (fillBufferA){
-                mx = TXBUFFSZ_HALF;
-                while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
-                    txferTxBuff[mx] = counter;
-                    counter++;
-                    mx++;
-                }
-                firstTimestampInBufferA = counter-TXBUFFSZ_HALF;
-                fillBufferA = 0;
-            }
-
-            if (fillBufferB){
-                mx = 0;
-                while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
-                    txferTxBuff[mx] = counter;
-                    counter++;
-                    mx++;
-                }
-                firstTimestampInBufferB = counter-TXBUFFSZ_HALF;
-                fillBufferB = 0;
-            }
-
-        } //if (fillBufferA || fillBufferB)
+        } 
       
     } //while(1)
 

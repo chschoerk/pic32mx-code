@@ -9,7 +9,7 @@
 
 //UINT32 txCounterPeriod = T1TURNS * T1PR;
 //UINT32 txCounterPeriod = 3931904;
-
+extern volatile UINT32 nominalValue;
 
 int setupDetectInterrupt()
 {
@@ -89,7 +89,7 @@ int measureFrequency(UINT32 edgeCount, INT32 *buf,
      *distribute values equally across buffer entries (no rounding)*/
     for (i = turns; i > 0; i--){
             thisVal = edgeCount/i;
-            indivError = (INT32)(thisVal - REFEDGES); //fill buffer with individual errors
+            indivError = (INT32)(thisVal - nominalValue); //fill buffer with individual errors
 
             //DEBUG
             /*if ( (indivError < -2000) || (indivError > 2000) ){

@@ -98,6 +98,40 @@ void updateDMASourcePointer(void)
     srcPtr = tmp >> 2; //floor(srcPtr_byte/4) => index of the current buffer element (UINT32)
 }*/
 
+int fillDMABufferHalf()
+{
+    int mx = 0;
+    int ret = 0;
+
+    if (fillBufferA && fillBufferB){
+        ret = -1;        //error
+    }
+
+    if (fillBufferA){
+        mx = TXBUFFSZ_HALF;
+        while(mx < TXBUFFSZ){ //TODO: this should be done outside the ISR (but where)
+            txferTxBuff[mx] = counter;
+            counter++;
+            mx++;
+        }
+        firstTimestampInBufferA = counter-TXBUFFSZ_HALF;
+        fillBufferA = 0;
+    }
+
+    if (fillBufferB){
+        mx = 0;
+        while(mx < TXBUFFSZ_HALF){ //TODO: this should be done outside the ISR
+            txferTxBuff[mx] = counter;
+            counter++;
+            mx++;
+        }
+        firstTimestampInBufferB = counter-TXBUFFSZ_HALF;
+        fillBufferB = 0;
+    }
+
+    return ret;
+}
+
 int startDMA1_TxBuffToSpi2(void)
 {
 	DmaChannel		dmaTxChn=DMA_CHANNEL1;	// DMA channel to use for our example

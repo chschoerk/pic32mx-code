@@ -18,6 +18,7 @@ int initBuffers();
 UINT32 readReceivedTimestamp(void);
 void updateTimestamp(UINT32 timestampNew);
 //void updateDMASourcePointer(void);
+int fillDMABufferHalf();
 int startDMA1_TxBuffToSpi1(void);
 void resetSrcPtrOverruns(void);
 
