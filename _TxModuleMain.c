@@ -134,8 +134,7 @@ int main(void) {
             toggleLED2;
             if (skippedFirst){
 
-
-                i = 10000;
+                i = 100;
                 while(i--); //wait
 
                 ts = readReceivedTimestamp();
@@ -159,12 +158,7 @@ int main(void) {
                         //we seem to be a bit off -> adjust VCXO slighly (how?)
                         turnOffLED1;
                     }
-                    //tmpArr2[tmpIdx] = timestampDivergence;
-                    /*tmpArr2[tmpIdx] = timestampDivergence;
-                    tmpIdx++;
-                    if (tmpIdx == 64){
-                        tmpIdx = 19;
-                    }*/
+
                 }
 
                 if (counterOverflow > 0){
@@ -172,7 +166,6 @@ int main(void) {
                 }else{
                     edgeCount = counterValue32 - counterValueOld - 1;
                 }
-                //tmpArr2[cntHistIdx] = edgeCount;
                 
                 sane = sanityCheck(edgeCount, turns);
                 if (sane){
@@ -197,12 +190,6 @@ int main(void) {
                             outOfBounceCount++;
                         }
                         tmpArr1[cntHistIdx] = thisDeviationAbs;                          
-
-                        /*tmpArr2[tmpIdx] = fDeviation;
-                        tmpIdx++;
-                        if (tmpIdx == 64){
-                            tmpIdx = 0;
-                        }*/
 
 
                         /*check if we can stop controlling*/
@@ -263,7 +250,7 @@ int main(void) {
         if (fillBufferA || fillBufferB){  /*fill DMA buffer*/
 
             if (fillBufferA && fillBufferB){
-                //this would be an error
+                //error
             }
 
             if (fillBufferA){
