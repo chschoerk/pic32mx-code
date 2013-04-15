@@ -5,7 +5,9 @@
 
 #include "switching.h"
 
-
+extern volatile unsigned char sendData;
+extern volatile unsigned char recvData;
+extern volatile unsigned char smbusCmdReceived;
 
 void setupSMBus(int pbclockfreq)
 {
@@ -20,50 +22,34 @@ void setupSMBus(int pbclockfreq)
 
 void __ISR(_I2C_2_VECTOR, ipl2) I2C2Interrupt()
 {
-    static unsigned char s = 0;
+    //static unsigned char sendData = 0;
     unsigned char dummy = 0;
-    unsigned char recvData = 0;
-    //static UINT32 i2cStatus = 0;
-    //static UINT32 i2cStatusOld = 0;
-    //static UINT32 stats1[5] = { 0 };
-    //static UINT32 stats2[5] = { 0 };
-    //static int sx = 0;
-    
-    //i2cStatus = I2C2STAT;
-    //stats1[sx] = I2C2STAT;
+    //unsigned char recvData = 0;
+    static int ix = 0;
 
-    //toggleLED2;
-    s++;
-
-    if ( I2C2ASTATbits.RBF ){
+    /*master wants to read*/
+    /*every read command from the Beaglebone triggers 2 IRQs.
+     *The first one with I2C2STAT = 0x0E, the second one with
+     *I2C2STAT = =0x34 - only the first one is important,ignore
+     *in the second one*/
+    if ( (I2C2ASTATbits.R_W==1) && (I2C2ASTATbits.RBF==1) ){
+        //SlaveWriteI2C2(sendData);
         dummy = SlaveReadI2C2();
+        SlaveWriteI2C2(sendData);
     }
 
-    if ( (I2C2ASTATbits.R_W==1) && (I2C2ASTATbits.RBF==0) ){
-        /*master wants to read*/
-        SlaveWriteI2C2(s);
-        toggleLED2;
-    }
-
-    if ( (I2C2ASTATbits.R_W==0) && (I2C2ASTATbits.RBF==0) ){
-        /*master wants to write*/
+    /*master wants to write*/
+    /*every write commandfrom the Beaglebone triggers 2 IRQs.
+     *The first read results in reading the address+RW, the
+     *second one is the actual data*/
+    if ( I2C2ASTATbits.R_W==0 ){
         recvData = SlaveReadI2C2();
-        if (recvData == 0xBB){
-            turnOnLED1;
-        }
-        if (recvData == 0xCC){
-            turnOffLED1;
-        }
+        ix++;
+        if (ix == 2){
+            smbusCmdReceived = 1;
+            ix = 0;
+        }  
     }
-
-    /*read*/
-    /*
-    i2cStatusOld = i2cStatus;
-    stats2[sx] = I2C2STAT;
-    sx++;
-    if (sx == 5){
-        sx = 0;
-    }*/
 
     mI2C2SClearIntFlag();
 }

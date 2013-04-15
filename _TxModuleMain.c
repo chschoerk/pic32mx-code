@@ -50,6 +50,10 @@ volatile unsigned char fillBufferA = 0;
 volatile unsigned char fillBufferB = 0;
 volatile UINT32 nominalValue = REFEDGES;
 
+volatile unsigned char sendData = 0; //for SMBus
+volatile unsigned char recvData = 0; //for SMBus
+volatile unsigned char smbusCmdReceived = 0; //for SMBus
+
 int main(void) {
 
     BOOL bOk = TRUE;
@@ -109,11 +113,9 @@ int main(void) {
     //switchOffAnd();
 
     /*---SETUP------------------------------------------------------*/
-    //setupI2S();                             //I2S (TIMESTAMP OUT)
+    setupI2S();                             //I2S (TIMESTAMP OUT)
     
     setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-    INTEnableInterrupts(); //temp: already here
-    while(1);
 
     pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
@@ -138,7 +140,7 @@ int main(void) {
     turnOffLED2;
 
     while(1){
-        
+
         if (rxDetected){
             toggleLED2;
             if (skippedFirst){
@@ -267,7 +269,25 @@ int main(void) {
 
             fillDMABufferHalf();
 
-        } 
+        }
+
+
+        if (smbusCmdReceived){
+
+            switch(recvData){
+                case 0xCC:
+                    sendData = 0xCC;
+                    break;
+                case 0xBB:
+                    sendData = 0xBB;
+                    break;
+                default:
+                    //should not happen
+                    break;
+            }
+            smbusCmdReceived = 0;
+            
+        }
       
     } //while(1)
 
