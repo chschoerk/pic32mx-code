@@ -109,8 +109,12 @@ int main(void) {
     //switchOffAnd();
 
     /*---SETUP------------------------------------------------------*/
-    setupI2S();                             //I2S (TIMESTAMP OUT)
-    //setupSMBus(pbclockfreq);              //I2C (SMBus slave)
+    //setupI2S();                             //I2S (TIMESTAMP OUT)
+    
+    setupSMBus(pbclockfreq);              //I2C (SMBus slave)
+    INTEnableInterrupts(); //temp: already here
+    while(1);
+
     pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
     turnOnLED1;

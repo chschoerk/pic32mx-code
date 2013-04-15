@@ -49,8 +49,8 @@ void pinMux01 (void)
     PORTSetPinsDigitalOut(IOPORT_B, BIT_7);    //PWM-OUT
 
     /*I2C (SMBus)*/
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_3);     //SCL2 (pin 24)
-    PORTSetPinsDigitalOut(IOPORT_B, BIT_2);     //SDA2 (pin 23)
+    PORTSetPinsDigitalIn(IOPORT_B, BIT_3);     //SCL2 (pin 24)
+    PORTSetPinsDigitalIn(IOPORT_B, BIT_2);     //SDA2 (pin 23)
 
     /*TESTPINS*/
      PORTSetPinsDigitalOut(IOPORT_B, BIT_10); //PIN 8

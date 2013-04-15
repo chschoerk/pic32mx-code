@@ -6,6 +6,69 @@
 #include "switching.h"
 
 
+
+void setupSMBus(int pbclockfreq)
+{
+    UINT16 mySlaveAddress = 0x0E;
+
+    I2CSetSlaveAddress(I2C2, mySlaveAddress, 0, I2C_USE_7BIT_ADDRESS);
+    OpenI2C2( I2C_EN | I2C_SM_EN | I2C_SLW_DIS | I2C_ACK_EN | I2C_7BIT_ADD, ((pbclockfreq/2/50000)-2) ); //50000
+    SetPriorityIntI2C2(I2C_INT_PRI_2 | I2C_INT_SUB_PRI_3);
+    EnableIntSI2C2; //enable slave interrupt
+
+}
+
+void __ISR(_I2C_2_VECTOR, ipl2) I2C2Interrupt()
+{
+    static unsigned char s = 0;
+    unsigned char dummy = 0;
+    unsigned char recvData = 0;
+    //static UINT32 i2cStatus = 0;
+    //static UINT32 i2cStatusOld = 0;
+    //static UINT32 stats1[5] = { 0 };
+    //static UINT32 stats2[5] = { 0 };
+    //static int sx = 0;
+    
+    //i2cStatus = I2C2STAT;
+    //stats1[sx] = I2C2STAT;
+
+    //toggleLED2;
+    s++;
+
+    if ( I2C2ASTATbits.RBF ){
+        dummy = SlaveReadI2C2();
+    }
+
+    if ( (I2C2ASTATbits.R_W==1) && (I2C2ASTATbits.RBF==0) ){
+        /*master wants to read*/
+        SlaveWriteI2C2(s);
+        toggleLED2;
+    }
+
+    if ( (I2C2ASTATbits.R_W==0) && (I2C2ASTATbits.RBF==0) ){
+        /*master wants to write*/
+        recvData = SlaveReadI2C2();
+        if (recvData == 0xBB){
+            turnOnLED1;
+        }
+        if (recvData == 0xCC){
+            turnOffLED1;
+        }
+    }
+
+    /*read*/
+    /*
+    i2cStatusOld = i2cStatus;
+    stats2[sx] = I2C2STAT;
+    sx++;
+    if (sx == 5){
+        sx = 0;
+    }*/
+
+    mI2C2SClearIntFlag();
+}
+
+/*
 void setupSMBus(int pbclockfreq)
 {
     unsigned int i2c_address;
@@ -47,8 +110,8 @@ void setupSMBus(int pbclockfreq)
     IdleI2C2();	        //Wait to complete
     CloseI2C2();
 
-    /*slave*/
-    /*
-     http://hades.mech.northwestern.edu/index.php/PIC32MX:_I2C_Communication_between_PIC32s
-     */
-}
+    //slave
+    //
+    // http://hades.mech.northwestern.edu/index.php/PIC32MX:_I2C_Communication_between_PIC32s
+    //
+}*/
