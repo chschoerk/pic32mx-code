@@ -4,6 +4,7 @@
 #include <p32xxxx.h>
 
 #include "switching.h"
+#include "smbus.h"
 
 extern volatile unsigned char sendData;
 extern volatile unsigned char recvData;

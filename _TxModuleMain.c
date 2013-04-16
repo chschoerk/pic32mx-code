@@ -17,6 +17,8 @@
 #include "switching.h"
 #include "smbus.h"
 #include "measuring.h"
+#include "smbus.h"
+#include "tempsensor.h"
 #include "_TxModuleMain.h"
 
 
@@ -82,14 +84,16 @@ int main(void) {
     INT16 outOfBounceCount = 0;
     INT32 thisDeviationAbs = 0;
     INT32 tmpArr1[CNT_HIST_BUFFER_SIZE] = { 0 };
-    INT32 tmpArr2[CNT_HIST_BUFFER_SIZE] = { 0 };
-    int tmpIdx = 0;
     INT32 timestampDivergence;
     UINT32 packetCounter = 0;
     INT32 lastTimestampDivergence = 0;
     UINT32 packetCount[3] = { 0 };
     UINT16 pcidx = 0;
     INT32 tsdiv[3] = { 0 };
+
+    unsigned char temperature = 0;
+    unsigned char syncStatusWord = 0;
+    unsigned char rssiValue = 0;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -113,12 +117,11 @@ int main(void) {
     //switchOffAnd();
 
     /*---SETUP------------------------------------------------------*/
-    setupI2S();                             //I2S (TIMESTAMP OUT)
-    
+    setupI2S();                             //I2S (TIMESTAMP OUT)   
     setupSMBus(pbclockfreq);              //I2C (SMBus slave)
-
-    pwmValCurrent = setupPWM(pbclockfreq);                  //PWM (VCXO CONTROL)
+    pwmValCurrent = setupPWM(pbclockfreq); //PWM (VCXO CONTROL)
     setupEdgeCount();                       //VCXCO EDGE COUNTING
+    setupTempSensor();
     turnOnLED1;
     turnOnLED2;
     setupADF();                             //ADF7023
@@ -142,6 +145,11 @@ int main(void) {
     while(1){
 
         if (rxDetected){
+
+            if (syncStatusWord !=  SYNC_STATE_SYNCED){
+                syncStatusWord = SYNC_STATE_SYNCING;
+            }
+
             toggleLED2;
             if (skippedFirst){
 
@@ -224,6 +232,7 @@ int main(void) {
                             /*update timestamps - now they should be valid*/
                             updateTimestamp(ts);
                             syncState = SYNCED;
+                            syncStatusWord = SYNC_STATE_SYNCED;
                         }
 
                         cntHistIdx++;
@@ -261,7 +270,14 @@ int main(void) {
             /*Bring ADF back to RxState*/
             rxDetected = FALSE;
             bOk = bOk && ADF_GoToRxState();
-                      
+
+
+            /*read temperature from sensor*/
+            temperature = readTemperature();
+
+            /*get RSSI info from ADF*/
+            bOk = bOk & ADF_MMapRead(MCR_rssi_readback_Adr, 0x01, &rssiValue);
+
         } //if (rxDetected)
 
 
@@ -275,12 +291,14 @@ int main(void) {
         if (smbusCmdReceived){
 
             switch(recvData){
-                case 0xCC:
-                    sendData = 0xCC;
+                case CMD_SYNCSTATUS:
+                    sendData = (unsigned char)syncStatusWord;
                     break;
-                case 0xBB:
-                    sendData = 0xBB;
+                case CMD_TEMPSENS:
+                    sendData = (unsigned char)temperature;
                     break;
+                case CMD_GETRSSI:
+                    sendData = (unsigned char)rssiValue;
                 default:
                     //should not happen
                     break;
@@ -288,6 +306,7 @@ int main(void) {
             smbusCmdReceived = 0;
             
         }
+
       
     } //while(1)
 

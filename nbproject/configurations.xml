@@ -14,6 +14,7 @@
       <itemPath>smbus.h</itemPath>
       <itemPath>pwm_vcxo.h</itemPath>
       <itemPath>measuring.h</itemPath>
+      <itemPath>tempsensor.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -40,6 +41,7 @@
       <itemPath>measuring.c</itemPath>
       <itemPath>smbus.c</itemPath>
       <itemPath>pwm_vcxo.c</itemPath>
+      <itemPath>tempsensor.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

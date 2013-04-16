@@ -7,4 +7,5 @@ timestamping.h  \
 switching.h  \
  smbus.h  \
 measuring.h  \
+tempsensor.h  \
 _TxModuleMain.h 

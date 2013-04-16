@@ -33,6 +33,10 @@ extern "C" {
 
 #define MAX_MISSED_FOR_SANITY 40  //if more than MAX_MISSED_FOR_SANITY packets have been missed between two valid packets. don't use this packet
 
+#define SYNC_STATE_SYNCING      0x01
+#define SYNC_STATE_FREERUNNING  0x02
+#define SYNC_STATE_SYNCED       0x03
+
 
 
     

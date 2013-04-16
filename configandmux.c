@@ -56,6 +56,9 @@ void pinMux01 (void)
      PORTSetPinsDigitalOut(IOPORT_B, BIT_10); //PIN 8
      PORTSetPinsDigitalOut(IOPORT_B, BIT_11); //PIN 9
 
+     /*ADC FOR TEMP. SENSOR*/
+     PORTSetPinsAnalogIn(IOPORT_A, BIT_0); //PIN 19
+
     /*PPS*/
      PPSUnLock;
 
