@@ -12,9 +12,10 @@
 extern "C" {
 #endif
 
-#define CMD_SYNCSTATUS  0xCC
-#define CMD_TEMPSENS    0xBB
-#define CMD_GETRSSI     0xAA
+#define CMD_SYNCSTATUS    0xCC
+#define CMD_TEMPSENS      0xBB
+#define CMD_GETRSSI       0xAA
+#define CMD_GETPACKETLOSS 0xDD
 
 
 void setupSMBus(int pbclockfreq);

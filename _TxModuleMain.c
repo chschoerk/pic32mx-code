@@ -34,6 +34,8 @@
 #define CNT_STOP_THRESH      10
 //#define CNT_STOP_SIGN_TRESH  40
 #define BOUNCE_TRESH         250
+#define LOST_PACKETS_TILL_FREERUNNING 20
+#define TURNS_BUFFER_SIZE    8
 
 volatile BOOL rxDetected;
 volatile unsigned int counterValue = 0;
@@ -91,8 +93,14 @@ int main(void) {
     UINT16 pcidx = 0;
     INT32 tsdiv[3] = { 0 };
 
+    UINT32 t1counter = 0;
+    UINT32 turnsBuffer[TURNS_BUFFER_SIZE] = { 0 };
+    UINT32 turnsBufferSum = 0;
+    UINT32 avgTurns = 0;
+    int t1ix = 0;
+
     unsigned char temperature = 0;
-    unsigned char syncStatusWord = 0;
+    unsigned char syncStatusWord = SYNC_STATE_FREERUNNING;
     unsigned char rssiValue = 0;
 
     counterOverflow = 0;
@@ -128,6 +136,9 @@ int main(void) {
     turnOffLED1;
     ADF_MCRRegisterReadBack(&MCRregisters); //read back the MCRRegisters
     setupDetectInterrupt();                 //PREAMBEL DETECTED IRQ
+    //setupRTCC();
+    //tmLastPacket.l = RtccGetTime(); //debug
+    OpenTimer1(T1_ON | T1_SOURCE_INT | T1_PS_1_256,  39063); //timer overflow frequency to 4Hz (40MHz/(256*4) = 39063)
 
     /*---ENABLE INTERRUPTS------------------------------------------*/
     INTEnableInterrupts();
@@ -278,6 +289,20 @@ int main(void) {
             /*get RSSI info from ADF*/
             bOk = bOk & ADF_MMapRead(MCR_rssi_readback_Adr, 0x01, &rssiValue);
 
+            /*reset t1counter, count until nex packet is received*/
+            t1counter = 0;
+
+            /*compute average package loss*/
+            turnsBufferSum = turnsBufferSum - turnsBuffer[t1ix] + turns;
+            avgTurns = turnsBufferSum>>3; //divide by 8 (=TURNS_BUFFER_SIZE)
+            if (avgTurns > 255){
+                avgTurns = 255; //to squeeze it in a single byte value
+            }
+            turnsBuffer[t1ix] = turns;
+            t1ix++;
+            t1ix &= (TURNS_BUFFER_SIZE-1); //wrap index
+
+
         } //if (rxDetected)
 
 
@@ -299,6 +324,8 @@ int main(void) {
                     break;
                 case CMD_GETRSSI:
                     sendData = (unsigned char)rssiValue;
+                case CMD_GETPACKETLOSS:
+                    sendData = (unsigned char)avgTurns;
                 default:
                     //should not happen
                     break;
@@ -307,7 +334,16 @@ int main(void) {
             
         }
 
-      
+        if ( mT1GetIntFlag() ){
+            t1counter++;
+            //if (t1counter == (LOST_PACKETS_TILL_FREERUNNING<<2)){ //multiplay 4 because packet rate is 1Hz and timer1 irq rate is 4Hz
+            if (t1counter == 40){
+                syncStatusWord = SYNC_STATE_FREERUNNING;
+                avgTurns = 0xff; //set to 0%
+            }
+            mT1ClearIntFlag();
+        }
+
     } //while(1)
 
     

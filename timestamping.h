@@ -14,6 +14,7 @@ extern "C" {
 
 
 int setupI2S(void);
+int setupRTCC(void);
 int initBuffers();
 UINT32 readReceivedTimestamp(void);
 void updateTimestamp(UINT32 timestampNew);

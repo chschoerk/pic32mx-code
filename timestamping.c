@@ -45,6 +45,27 @@ int setupI2S()
     return 0;
 }
 
+int setupRTCC()
+{
+    rtccTime tm1;
+    rtccDate dt1;
+
+    RtccInit();
+    while(RtccGetClkStat()!=RTCC_CLK_ON);
+        // wait for the SOSC to be actually running and RTCC to have
+        // its clock source. Could wait here at most 32ms
+    RtccSetTimeDate(0x10073000, 0x07011602);
+        // time is MSb: hour, min, sec, rsvd. date
+        // date is MSb: year, mon, mday, wday.
+        // please note that the rsvd field has to be 0 in the time field!
+    tm1.l=RtccGetTime();
+    dt1.l=RtccGetDate();
+    // now that we know the RTCC clock is up and running, it's easier to start from fresh:
+    RtccOpen(tm1.l, dt1.l, 0);// set time, date and calibration in a single operation
+
+    return 0;
+}
+
 int initBuffers()
 {
     /*fill transmit buffer with dummy data-----------------------------*/
