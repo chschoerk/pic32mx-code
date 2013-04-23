@@ -16,6 +16,8 @@ extern "C" {
 #define CMD_TEMPSENS      0xBB
 #define CMD_GETRSSI       0xAA
 #define CMD_GETPACKETLOSS 0xDD
+#define CMD_TIMESTAMPLAG  0xEE
+#define CMD_MEANERROR     0xAC
 
 
 void setupSMBus(int pbclockfreq);

@@ -96,12 +96,19 @@ int main(void) {
     UINT32 t1counter = 0;
     UINT32 turnsBuffer[TURNS_BUFFER_SIZE] = { 0 };
     UINT32 turnsBufferSum = 0;
-    UINT32 avgTurns = 0;
     int t1ix = 0;
 
+    unsigned char avgTurns = 0;
     unsigned char temperature = 0;
     unsigned char syncStatusWord = SYNC_STATE_FREERUNNING;
     unsigned char rssiValue = 0;
+    INT8 timestampLag = 0;
+
+    INT16 fDevBuf[128] = { 0 };
+    int fDevIdx = 0;
+    INT32 fDevSum = 0;
+    INT32 fDevTmp = 0;
+    INT8 fDevMean = 0;
 
     counterOverflow = 0;
     counterValue = 0;
@@ -119,8 +126,9 @@ int main(void) {
     /*---SWITCHING---------------------------------------------------*/
     turnOffLED1;
     turnOffLED2;
-    switchOnCounter; //enable clock division
-    switch2ClockAnd(); //use buffer instead of AND
+    switchOffCounter;
+    //switch2ClockAnd(); //use buffer instead of AND
+    switch2ClockBuffer();
     //switchOffBuffer();
     //switchOffAnd();
 
@@ -153,6 +161,7 @@ int main(void) {
     bOk = bOk && ADF_GoToRxState(); //ADF: Go to RX state
     turnOffLED2;
 
+    switchOnCounter; //enable clock division
     while(1){
 
         if (rxDetected){
@@ -179,6 +188,7 @@ int main(void) {
                     if (timestampDivergence <= (lastTimestampDivergence+1) && timestampDivergence >= (lastTimestampDivergence-1)){
                         //everything's alright, all in good sync
                         timestampDivergence = 0; //temp debug
+                        //timestampLag = 0;
                     }else{
                         //we seem to be a bit off -> adjust VCXO slighly (how?)
                         lastTimestampDivergence = timestampDivergence;
@@ -191,9 +201,11 @@ int main(void) {
                         }
 
                         if (timestampDivergence > 0){ //we're too slow
-                            nominalValue += 30; //30 mal so zum probieren
+                            //nominalValue += 30; //30 mal so zum probieren
+                            timestampLag = timestampDivergence;
                         }else{ //we're too fast
-                            nominalValue -= 30; //30 mal so zum probieren
+                            //nominalValue -= 30; //30 mal so zum probieren
+                            timestampLag = timestampDivergence;
                         }
                         turnOffLED1;
                     }
@@ -249,6 +261,18 @@ int main(void) {
                         cntHistIdx++;
                         cntHistIdx &= (CNT_HIST_BUFFER_SIZE-1); //equals: cntHistIdx = cntHistIdx % CNT_HIST_BUFFER_SIZE if CNT_HIST_BUFFER_SIZE is 2^x
 
+                        /*keep score of mean of measured error*/
+                        fDevSum = fDevSum - fDevBuf[fDevIdx] + fDeviation;
+                        fDevBuf[fDevIdx] = fDeviation;
+                        fDevIdx++;
+                        fDevIdx &= 0x80;
+                        fDevTmp = fDevSum >> 7; // /128
+                        if (fDevTmp > 127)
+                            fDevTmp = 127;
+                        if (fDevTmp < -128)
+                            fDevTmp = -128;
+                        fDevMean = (INT8)fDevTmp;
+
 
                     } else { // if (controllerOn == 1)
 
@@ -264,6 +288,8 @@ int main(void) {
                 updateTimestamp(ts);
                 tsOld = ts;
                 skippedFirst = 1;
+                switchOnCounter; //enable clock division
+                    //if this is done too early, the beaglebone stops booting (!??)
 
             }
             
@@ -294,7 +320,7 @@ int main(void) {
 
             /*compute average package loss*/
             turnsBufferSum = turnsBufferSum - turnsBuffer[t1ix] + turns;
-            avgTurns = turnsBufferSum>>3; //divide by 8 (=TURNS_BUFFER_SIZE)
+            avgTurns = (unsigned char)(turnsBufferSum>>3); //divide by 8 (=TURNS_BUFFER_SIZE)
             if (avgTurns > 255){
                 avgTurns = 255; //to squeeze it in a single byte value
             }
@@ -324,8 +350,16 @@ int main(void) {
                     break;
                 case CMD_GETRSSI:
                     sendData = (unsigned char)rssiValue;
+                    break;
                 case CMD_GETPACKETLOSS:
                     sendData = (unsigned char)avgTurns;
+                    break;
+                case CMD_TIMESTAMPLAG:
+                    sendData = (INT8)timestampLag;
+                    break;
+                case CMD_MEANERROR:
+                    sendData = (INT8)fDevMean;
+                    break;
                 default:
                     //should not happen
                     break;
